@@ -28,52 +28,6 @@ models = {
 MODEL = "gpt-4"
 MAX_TOKENS = models[MODEL]["max_token"]
 
-# def get_secret(secret_name, region_name):
-#     session = boto3.session.Session()
-#     client = session.client(
-#         service_name='secretsmanager',
-#         region_name=region_name
-#     )
-
-#     response = requests.get("http://169.254.170.2/v2/metadata")
-#     print("requests.get() ", response.json())
-
-
-#     try:
-#         get_secret_value_response = client.get_secret_value(
-#             SecretId=secret_name
-#         )
-#     except ClientError as e:
-#         if e.response['Error']['Code'] == 'ResourceNotFoundException':
-#             print("The requested secret " + secret_name + " was not found")
-#         elif e.response['Error']['Code'] == 'InvalidRequestException':
-#             print("The request was invalid due to:", e)
-#         elif e.response['Error']['Code'] == 'InvalidParameterException':
-#             print("The request had invalid params:", e)
-#         elif e.response['Error']['Code'] == 'DecryptionFailure':
-#             print("The requested secret can't be decrypted using the provided KMS key:", e)
-#         elif e.response['Error']['Code'] == 'InternalServiceError':
-#             print("An error occurred on service side:", e)
-#     else:
-#         if 'SecretString' in get_secret_value_response:
-#             secret = get_secret_value_response['SecretString']
-#         else:
-#             secret = base64.b64decode(get_secret_value_response['SecretBinary'])
-#         return secret
-
-# print("Secrets to retrieve: ")
-# print(config['DEFAULT']['REGION'])
-# print( config['secrets.manager.keys']['SLACK_BOT_TOKEN'])
-# print( config['secrets.manager.keys']['SLACK_APP_TOKEN'])
-# print( config['secrets.manager.keys']['OPENAI_API_KEY'])
-
-
-# # Grag secrets from AWS Secrets Manager:
-# REGION = config['DEFAULT']['REGION']
-# SLACK_BOT_TOKEN = get_secret(config['secrets.manager.keys']['SLACK_BOT_TOKEN'], REGION)
-# SLACK_APP_TOKEN = get_secret(config['secrets.manager.keys']['SLACK_APP_TOKEN'], REGION)
-# OPENAI_API_KEY = get_secret(config['secrets.manager.keys']['OPENAI_API_KEY'], REGION)
-
 # SLACK_BOT_TOKEN = os.getenv('SLACK_BOT_TOKEN_CHATAWS')
 SLACK_BOT_TOKEN = os.getenv('SLACK_BOT_TOKEN')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
@@ -86,21 +40,6 @@ if DEBUG:
 openai.api_key = OPENAI_API_KEY
 
 delimiter = "####"
-# SYSTEM_PROMPT = f"""
-# # You are an AWS expert ChatBot. You know everything about AWS \
-# # and through your web browsing ability, you can easily access \
-# # current documentation in the AWS library to reason through and answer any topic. \
-# # Any web searching you do will start with official AWS documentation \
-# # and may search for other expert blogs and articles. \
-# # You will be provided with AWS support queries from users and builders. \
-# # Your answers should be targeted to the exact question asked, and not \
-# # simply include generic TL;DR information. \
-# # You will provide links to any web pages referenced as \
-# # well as concise code snippits when appropriate. You will verify all links \
-# # to ensure they are valid, not hallucinations and not broken \
-# # When code is asked for or if you decide it will help \
-# # you answer the question, you will use search https://github.com/aws. \
-# # """
 SYSTEM_PROMPT = f"""
 # You are an AWS expert ChatBot. You know everything about AWS \
 # and through your web browsing ability, you can easily access \
@@ -138,7 +77,7 @@ SYSTEM_PROMPT = f"""
 
 WAIT_MESSAGE = "Got your request. Please wait."
 N_CHUNKS_TO_CONCAT_BEFORE_UPDATING = 20
-MAX_TOKENS = 8192
+# MAX_TOKENS = 8192
 
 def extract_url_list(text):
     url_pattern = re.compile(
@@ -223,11 +162,6 @@ def get_completion_from_messages(messages,
         #Handle other error, e.g. retry or log
         print(f"OpenAI API request failed: {e}")
         pass
-    # Return the last message (this strips off the inner reasoning steps)
-    # return str(response).split(delimiter)[-1].strip()
-    # return response.split(delimiter)[-1].strip()
-    # return response.choices[0].message("content").split(delimiter)[-1].strip()
-    
 
 # From https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb
 def num_tokens_from_messages(messages, model="gpt-4"):
