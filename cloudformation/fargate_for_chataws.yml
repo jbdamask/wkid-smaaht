@@ -1,3 +1,4 @@
+# deprecated
 AWSTemplateFormatVersion: '2010-09-09'
 Description: Stack for creating Fargate and resources associated with the ChatAWS application
 

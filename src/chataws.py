@@ -15,7 +15,6 @@ from utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,
                    update_chat, moderate_messages, get_completion_from_messages)
 
 app = App(token=SLACK_BOT_TOKEN)
-# openai.api_key = OPENAI_API_KEY
 
 def get_conversation_history(channel_id, thread_ts):
     return app.client.conversations_replies(

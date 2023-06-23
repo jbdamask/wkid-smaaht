@@ -29,10 +29,19 @@ ChatAWS Slack is a GPT-backed chatbot that integrates with Slack. It's like havi
     - Slack bot token
     - Slack app token
 
+- Docker
+    - Docker installed and running locally
 
-## Installation
 
-1. Clone this repository.
+## Installation & Configuration
+
+There are three major steps involved with installing this application
+
+1. Code configuration
+    - Clone this repo
+    - 
+2. AWS configuration
+3. Slack configuration
 
 
 ## FAQ

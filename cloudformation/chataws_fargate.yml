@@ -68,10 +68,7 @@ Resources:
               - !Ref SlackBotSecretArn
               - !Ref SlackAppSecretArn
               - !Ref OpenAIAPISecretArn
-              # - "arn:aws:secretsmanager:us-east-1:110088003729:secret:SLACK_BOT_TOKEN_CHATAWS-SG8QvK"
-              # - "arn:aws:secretsmanager:us-east-1:110088003729:secret:SLACK_APP_TOKEN_CHATAWS-9M7q3t"
-              # - "arn:aws:secretsmanager:us-east-1:110088003729:secret:OPENAI_API_KEY_JBDAMASK-AYvLBv"
-
+              
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
