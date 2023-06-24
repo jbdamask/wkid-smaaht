@@ -76,7 +76,6 @@ There are three major parts to this application that need to be configured in th
 *Note these instructions are for a Mac. You may have to tweak if running on Windows or other systems*
 - Download latest release or clone this repo into a local folder with a python virtual environment
     ```
-    cd ~/code
     git clone https://gitlab.com/flagship-informatics/flagship-digital/aws/chataws-slack.git
     ```
 - It's a good idea to try your application locally, which can be done using the handy localapp.py script provided:
@@ -86,6 +85,11 @@ There are three major parts to this application that need to be configured in th
     python -m venv .venv
     source .venv/bin/activate
     pip install -r requirements.txt
+    # Set local environment variables. Here's how to do it on a Mac
+    export SLACK_BOT_TOKEN_CHATAWS=<bot token>
+    export SLACK_APP_TOKEN_CHATAWS=<app token>
+    export OPENAI_API_KEY_CHATAWS=<openai api key>
+    python localsrc/localapp.py
 
     ```
 

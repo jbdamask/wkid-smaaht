@@ -9,11 +9,6 @@ import os
 import openai
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
-from dotenv import load_dotenv, find_dotenv
-_ = load_dotenv(find_dotenv()) # read local .env file
-SLACK_BOT_TOKEN = os.environ["SLACK_BOT_TOKEN_CHATAWS"]
-SLACK_APP_TOKEN = os.environ["SLACK_APP_TOKEN_CHATAWS"]
-OPENAI_API_KEY = os.environ["OPENAI_API_KEY_CHATAWS"]
 
 from utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,
                    SLACK_APP_TOKEN, SLACK_BOT_TOKEN, WAIT_MESSAGE,
@@ -99,4 +94,4 @@ def command_handler(body, context):
         
 # Start your app
 if __name__ == "__main__":
-    SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"]).start()
+    SocketModeHandler(app, SLACK_APP_TOKEN).start()
