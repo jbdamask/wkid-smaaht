@@ -40,7 +40,8 @@ There are three major parts to this application that need to be configured in th
 ### 1. Slack app creation
 - Login to your Slack workspace
 - Follow Slack's [Basic app setup guide](https://api.slack.com/authentication/basics)
-    - Click the Create a new Slack app button on the page above
+    - Click the Create a new Slack app button on the page above. 
+    - This will take you to the https://api.slack.com site for configuring your app
 - Specific configuration for this app:
     - App token:
         - Click, Generate Tokens and Scopes
@@ -71,6 +72,28 @@ There are three major parts to this application that need to be configured in th
     <img src="images/slack-app-dev.png" alt="Allow" width="400"/>
 - Search for ChatAWS and click Add
 - Verify you can call it by typing `@ChatAWS`. It won't do anything yet.
+- Verify the app can write to the channel. 
+    - Get the Slack channel id for the channel you just invited the bot to (you can find this in Slack by clicking the drop down your channel name and scrolling to the bottom)
+    - Post a message
+        ```
+        curl -X POST -F channel=<channel ID> -F text="ChatAWS ready to go" \
+        https://slack.com/api/chat.postMessage \
+        -H "Authorization: Bearer <Slack bot token>"
+        ```
+- Now you need to configure your app to listen for events (again, this is done via https://api.slack.com)
+    - The app communicates over websockets, so you'll first need to enable socket mode.
+        - Navigate to Socket Mode
+        - Click "Enable Socket Mode"
+    - In the https://api.slack.com page for your ChatAWS app, navigate to Event Subscriptions and click the Enable Events toggle
+    - Subscribe to the following events:
+        - app_mention
+        - message.channels
+        - message.groups
+        - message.im
+        - message.mpim
+    - Click Save Changes button
+- Go to the Slack channel where you invited your new app and type `@ChatAWS hello`. You should get a friendly response 
+    <img src="images/chataws-hello.png" alt="Allow" width="300"/>
 
 ### 2. Code configuration
 *Note these instructions are for a Mac. You may have to tweak if running on Windows or other systems*
