@@ -89,26 +89,8 @@ def command_handler(body, context):
             thread_ts=thread_ts,
             text=f"I can't provide a response. Encountered an error:\n`\n{e}\n`")
 
-# def get_completion_from_messages(messages, 
-#                                 #  model="gpt-3.5-turbo", 
-#                                  model="gpt-4",
-#                                  temperature=0, 
-#                                  max_tokens=MAX_TOKENS,
-#                                  stream=True
-#                                  ):
-#     response = openai.ChatCompletion.create(
-#         model=model,
-#         messages=messages,
-#         temperature=temperature, 
-#         stream=True
-#     )
-#     return response
 
 # Start your app
 if __name__ == "__main__":
     print("Starting app")
-    # print("SLACK_BOT_TOKEN: ", SLACK_BOT_TOKEN)
-    # print("OPENAI_API_KEY: ", OPENAI_API_KEY)
-    # print("SLACK_APP_TOKEN: ", SLACK_APP_TOKEN)
     SocketModeHandler(app, SLACK_APP_TOKEN).start()
-    # SocketModeHandler(app, os.environ["SLACK_APP_TOKEN"]).start()

@@ -10,9 +10,13 @@ Parameters:
     Description: The ID of the Subnet
     Type: AWS::EC2::Subnet::Id
 
-  EcrRepositoryUrl:
-    Description: The URL of the ECR repository
+  RepositoryName:
     Type: String
+    Description: Name of the ECR repository
+
+  # EcrRepositoryUrl:
+  #   Description: The URL of the ECR repository
+  #   Type: String
 
   SlackBotSecretArn:
     Description: The ARN of the Slack Bot Secret in Secrets Manager
@@ -27,6 +31,11 @@ Parameters:
     Type: String 
 
 Resources:
+  ECRRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Ref RepositoryName
+
   FargateSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -68,7 +77,7 @@ Resources:
               - !Ref SlackBotSecretArn
               - !Ref SlackAppSecretArn
               - !Ref OpenAIAPISecretArn
-              
+
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
@@ -80,13 +89,14 @@ Resources:
       ExecutionRoleArn: !GetAtt ExecutionRole.Arn
       ContainerDefinitions:
         - Name: SlackAppContainer
-          Image: !Ref EcrRepositoryUrl
+          # Image: !Ref EcrRepositoryUrl
+          Image: $Sub ${ECRRepository.RepositoryUri}
           Essential: true
           Secrets:
             - ValueFrom: !Ref SlackBotSecretArn
               Name: SLACK_BOT_TOKEN_CHATAWS
             - ValueFrom: !Ref OpenAIAPISecretArn
-              Name: OPENAI_API_KEY
+              Name: OPENAI_API_KEY_CHATAWS
             - ValueFrom: !Ref SlackAppSecretArn
               Name: SLACK_APP_TOKEN_CHATAWS              
           LogConfiguration:
@@ -119,6 +129,9 @@ Resources:
       RetentionInDays: 7
 
 Outputs:
-  EcrRepositoryUrl:
-    Description: The URL of the ECR repository
-    Value: !Ref EcrRepositoryUrl
+  # EcrRepositoryUrl:
+  #   Description: The URL of the ECR repository
+  #   Value: !Ref EcrRepositoryUrl
+  ECRRepositoryURL:
+    Description: ECR repository URL
+    Value: !Sub "${ECRRepository.RepositoryUri}"
