@@ -119,22 +119,25 @@ There are three major parts to this application that need to be configured in th
 
     <img src="images/what-is-aws.png" alt="Allow" width="500"/>
 
-### 3. AWS configuration
-
 Did you make it here? Sweet. Read on.
 
 A production Slack application probably shouldn't run on your laptop. It should run in a container in your AWS account. This section will walk you through creating a Docker image, publishing it to an AWS Elastic Container Registry (ECR) repository and running it as a serverless application that's always on.
 
-Go ahead and stop localapp.py by hitting Ctrl c
+Go ahead and stop localapp.py by hitting Ctrl c. 
 
-1. First, let's put your Slack tokens and OpenAI key in AWS Secrets Manager (you certainly wouldn't want to check them into your code base...*right?!*)
+**Create Docker image**
+
+### 3. AWS configuration
+
+
+1. Let's put your Slack tokens and OpenAI key in AWS Secrets Manager (you certainly wouldn't want to check them into your code base...*right?!*)
     - Follow this step if you're comfortable with bash scripts, otherwise you can create these secrets in  AWS Secrets Manager using the AWS GUI.
         - Make bash script executable and run 
             ```
             chmod +x scripts/create_secrets.sh
-            ./scripts/create_secrets
+            ./scripts/create_secrets.sh
             ```
-
+2. 
 
 
 

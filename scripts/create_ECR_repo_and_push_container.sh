@@ -1,7 +1,7 @@
 # Change values below to your own values
 
 # # Create ECR repository
-# aws ecr create-repository --repository-name my-repo
+aws ecr create-repository --repository-name my-repo
 
 # Authenticate Docker to ECR
 aws ecr get-login-password --region region | docker login --username AWS --password-stdin <account-id>.dkr.ecr.<region>.amazonaws.com

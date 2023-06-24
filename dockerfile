@@ -8,6 +8,9 @@ FROM python:3.10.9-slim-buster AS x86_base
 # Set the working directory in the container to /app
 WORKDIR /app
 
+# Copy the requirements.txt file to the container
+COPY requirements.txt .
+
 # Add the src directory contents into the container at /app
 ADD src/ /app
 
