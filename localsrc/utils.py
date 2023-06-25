@@ -15,8 +15,8 @@ import tiktoken
 from trafilatura import extract, fetch_url
 from trafilatura.settings import use_config
 
-config = configparser.ConfigParser()
-config.read('settings.ini')
+# config = configparser.ConfigParser()
+# config.read('settings.ini')
 newconfig = use_config()
 newconfig.set("DEFAULT", "EXTRACTION_TIMEOUT", "0")
 
