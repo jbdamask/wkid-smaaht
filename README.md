@@ -95,6 +95,7 @@ There are three major parts to this application that need to be configured in th
         - message.mpim
     - Click Save Changes button
 - Go to the Slack channel where you invited your new app and type `@ChatAWS hello`. You should get a friendly response 
+
     <img src="images/chataws-hello.png" alt="Allow" width="300"/>
 
 ### 2. Code configuration
@@ -165,11 +166,11 @@ You're now ready to create an AWS Elastic Container Service that will pull your 
 - Monitor Events in the CloudFormation console. After a few minutes, the status should read CREATE_COMPLETE. If you see errors, go through the Events that caused them and ensure you didn't have any missteps. One common error is that the ARN for your secrets was wrong.
 
 
-
-
-
 ## FAQ
-- Does OpenAI use my input? Per [OpenAI's API Data Usage policy from May 2023](https://openai.com/policies/api-data-usage-policies) OpenAI will not use your conversations to train their models
+- Does OpenAI use my input? 
+    - Per [OpenAI's API Data Usage policy from May 2023](https://openai.com/policies/api-data-usage-policies) OpenAI will not use your conversations to train their models
+- Does ChatAWS remember my chats? 
+    - 
 
 ## How I Built This
 This project leverages the [Bolt-Python](https://slack.dev/bolt-python/tutorial/getting-started) framework for building Slack applications, and uses code from the [Slack GPT Bot](https://github.com/alex000kim/slack-gpt-bot) project and the deeplearning.ai course, [Building Systems with the ChatGPT API](https://learn.deeplearning.ai/chatgpt-building-system/lesson/1/introduction).
