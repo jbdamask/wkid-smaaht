@@ -10,11 +10,3 @@ aws secretsmanager create-secret --name "SLACK_BOT_TOKEN_CHATAWS" --secret-strin
 aws secretsmanager create-secret --name "SLACK_APP_TOKEN_CHATAWS" --secret-string "$slack_app_token" --region "$region"
 
 aws secretsmanager create-secret --name "OPENAI_API_KEY_CHATAWS" --secret-string "$openai_api_key" --region "$region"
-
-
-
-# aws secretsmanager create-secret --name "SLACK_BOT_TOKEN_CHATAWS" --secret-string "your-secret-value" --region "your-region"
-
-# aws secretsmanager create-secret --name "SLACK_APP_TOKEN_CHATAWS" --secret-string "your-secret-value" --region "your-region"
-
-# aws secretsmanager create-secret --name "OPENAI_API_KEY_CHATAWS" --secret-string "your-secret-value" --region "your-region"

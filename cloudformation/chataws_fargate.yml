@@ -89,7 +89,7 @@ Resources:
       ExecutionRoleArn: !GetAtt ExecutionRole.Arn
       ContainerDefinitions:
         - Name: SlackAppContainer
-          Image: !Ref EcrRepositoryUrl
+          Image: !Ref EcrRepositoryUri
           # Image: $Sub ${ECRRepository.RepositoryUri}
           Essential: true
           Secrets:
@@ -128,10 +128,10 @@ Resources:
       LogGroupName: /ecs/SlackAppContainer
       RetentionInDays: 7
 
-Outputs:
-  EcrRepositoryUrl:
-    Description: The URL of the ECR repository
-    Value: !Ref EcrRepositoryUrl
+# Outputs:
+#   EcrRepositoryUrl:
+#     Description: The URL of the ECR repository
+#     Value: !Ref EcrRepositoryUrl
   # ECRRepositoryURL:
   #   Description: ECR repository URL
   #   Value: !Sub "${ECRRepository.RepositoryUri}"

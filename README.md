@@ -32,6 +32,8 @@ ChatAWS Slack is a GPT-backed chatbot that integrates with Slack. It's like havi
 
 - Python 3.10 or greater
 
+- Ability to execute bash shell scripts
+
 
 ## Installation & Configuration
 
@@ -100,11 +102,12 @@ There are three major parts to this application that need to be configured in th
 - Download latest release or clone this repo into a local folder with a python virtual environment
     ```
     git clone https://gitlab.com/flagship-informatics/flagship-digital/aws/chataws-slack.git
+    cd chataws-slack
+    chmod +x scripts/*.sh
     ```
 - It's a good idea to try your application locally, which can be done using the handy localapp.py script provided:
     ```
     # Create virtual Python environment to isolate this project from your global Python
-    cd chataws-slack
     python -m venv .venv
     source .venv/bin/activate
     pip install -r requirements.txt
@@ -119,25 +122,37 @@ There are three major parts to this application that need to be configured in th
 
     <img src="images/what-is-aws.png" alt="Allow" width="500"/>
 
-Did you make it here? Sweet. Read on.
+Did you make it here? Sweet. Go ahead and stop localapp.py by hitting Ctrl c and read on.
 
-A production Slack application probably shouldn't run on your laptop. It should run in a container in your AWS account. This section will walk you through creating a Docker image, publishing it to an AWS Elastic Container Registry (ECR) repository and running it as a serverless application that's always on.
+### 3. Docker build and AWS configuration
 
-Go ahead and stop localapp.py by hitting Ctrl c. 
+A production Slack application shouldn't run on your laptop; it should run in a container in your AWS account. This section will walk you through creating a Docker image, publishing it to an AWS Elastic Container Registry (ECR) repository and running it as a serverless application that's always on.
 
-**Create Docker image**
+- Create your AWS Elastic Container Repository (ECR), your Docker image and push the image to your new repo
+    
+    ``` 
+    ./scripts/create_ECR_repo_and_push_container.sh
+    Enter your repository name: chat-aws-slack
+    Enter your region: \<your AWS region\>
+    Enter your account ID: <your account id>
+    ```
 
-### 3. AWS configuration
+    This will take a couple of minutes to run (if you encounter an error, paste it into ChatGPT and see if you can troubleshoot). When finished, get the URI for the repo and save it for later
 
+    ```
+    aws ecr describe-repositories --repository-names chat-aws-slack --query 'repositories[0].repositoryUri' --output text
+    ```
 
-1. Let's put your Slack tokens and OpenAI key in AWS Secrets Manager (you certainly wouldn't want to check them into your code base...*right?!*)
-    - Follow this step if you're comfortable with bash scripts, otherwise you can create these secrets in  AWS Secrets Manager using the AWS GUI.
-        - Make bash script executable and run 
-            ```
-            chmod +x scripts/create_secrets.sh
-            ./scripts/create_secrets.sh
-            ```
-2. 
+- Write your OpenAI API key and Slack bot and app tokens to AWS Secrets Manager.
+    ```
+    ./scripts/create_secrets.sh
+    ```
+
+You're now ready to create an AWS Elastic Container Service that will pull your image from ECR and run it. We use AWS Fargate so there's no need to manage EC2s. 
+
+- Open the AWS Management Console and login
+- Navigate to CloudFormation and create a stack with new resources using the file `cloudformation/chataws_fargate.yml`
+
 
 
 
