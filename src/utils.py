@@ -116,7 +116,7 @@ def get_completion_from_messages(messages,
                                 #  model="gpt-4",
                                  temperature=0, 
                                  model=MODEL,
-                                #  max_tokens=MAX_TOKENS,
+                                 max_tokens=MAX_TOKENS,
                                 #  stream=True
                                  ):
     try:
