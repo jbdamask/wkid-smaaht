@@ -147,11 +147,23 @@ A production Slack application shouldn't run on your laptop; it should run in a 
     ```
     ./scripts/create_secrets.sh
     ```
+    Copy the ARNs for each secret, you'll need them later
 
 You're now ready to create an AWS Elastic Container Service that will pull your image from ECR and run it. We use AWS Fargate so there's no need to manage EC2s. 
 
 - Open the AWS Management Console and login
 - Navigate to CloudFormation and create a stack with new resources using the file `cloudformation/chataws_fargate.yml`
+    - Stack name: chat-aws-slack
+    - Paste in values from what you created earlier for
+        - EcrRepositoryUri
+        - OpenAIAPISecretArn
+        - SlackAppSecretArn
+        - SlackBotSecretArn
+    - Choose your vpc and private subnet IDs
+    - Follow through the rest of the CloudFormation wizard. Add the Tag `AppName:ChatAWS Slack`, otherwise just leave the defaults and keep clicking Next
+    - Check the box acknowledging that the script creates IAM resources and slick Submit
+- Monitor Events in the CloudFormation console. After a few minutes, the status should read CREATE_COMPLETE. If you see errors, go through the Events that caused them and ensure you didn't have any missteps. One common error is that the ARN for your secrets was wrong.
+
 
 
 
