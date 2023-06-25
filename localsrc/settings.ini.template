@@ -1,7 +1,0 @@
-[DEFAULT]
-REGION = <replace with aws region>
-
-[secrets.manager.keys]
-SLACK_BOT_TOKEN = <replace with bot secret name>
-SLACK_APP_TOKEN = <replace with app secret name>
-OPENAI_API_KEY = <replace with openai api secret name>
