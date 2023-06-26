@@ -47,7 +47,6 @@ openai.api_key = OPENAI_API_KEY
 delimiter = "####"
 prompt = SystemPrompt(FilePromptStrategy())
 SYSTEM_PROMPT = prompt.get_prompt('gpt4_system_prompts/chataws-system-prompt.txt')
-print(SYSTEM_PROMPT)
 
 # SYSTEM_PROMPT = f"""
 # # You are an AWS expert ChatBot. You know everything about AWS \
@@ -214,6 +213,9 @@ def process_conversation_history(conversation_history, bot_user_id):
         message_text = process_message(message, bot_user_id)
         if message_text:
             messages.append({"role": role, "content": message_text})
+    if DEBUG:
+        print("process_conversation_history()")
+        pprint(messages)
     return messages
 
 
