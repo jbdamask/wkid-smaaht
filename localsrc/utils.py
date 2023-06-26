@@ -14,6 +14,8 @@ import json
 import tiktoken
 from trafilatura import extract, fetch_url
 from trafilatura.settings import use_config
+from dotenv import load_dotenv, find_dotenv
+_ = load_dotenv(find_dotenv()) # read local .env file
 
 # config = configparser.ConfigParser()
 # config.read('settings.ini')
