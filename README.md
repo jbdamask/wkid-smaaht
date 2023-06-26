@@ -175,6 +175,8 @@ You're now ready to create an AWS Elastic Container Service that will pull your 
     - Yes. But perhaps not as much as regular ChatGPT. This happens mostly with URLs it provides in the response. The model is told to validate all links before providing them to the user but it doesn't always work.
 - How much can I use it?
     - You can use it until you hit API call limits for [GPT-4](https://platform.openai.com/docs/guides/rate-limits/overview), then you'll have to cool your jets for a while. This could become a real pain if the app is being used by multiple people in your organization (which is likely considering it's a Slack bot).
+- How do I redeploy the Docker image if I want to change something?
+    - Execute the last two lines in `scripts/create_ECR_repo_and_push_container.sh`
 
 ## How it's Built
 This project leverages the [Bolt-Python](https://slack.dev/bolt-python/tutorial/getting-started) framework for building Slack applications, and uses code from the [Slack GPT Bot](https://github.com/alex000kim/slack-gpt-bot) project and the deeplearning.ai course, [Building Systems with the ChatGPT API](https://learn.deeplearning.ai/chatgpt-building-system/lesson/1/introduction).
