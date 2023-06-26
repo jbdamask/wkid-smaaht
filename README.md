@@ -190,3 +190,27 @@ This project leverages the [Bolt-Python](https://slack.dev/bolt-python/tutorial/
 ### Architecture
 
 <img src="images/ChatAWS%20Slack%20App.png" alt="Allow" width="500"/>
+
+---
+<!-- CONTRIBUTING -->
+## Contributing to this project
+Glad to see you want to make this project better! One crucial thing to keep in mind is that parameters are required for the program to execute. Feel free to add any features you think will be helpful but make sure to parameterize them. That is to say, don't change the default behavior of the program.
+
+Direct all discussions around new feature, bugs, etc to the #fsp-innersource Slack channel on the Flagship Network workspace. 
+
+### Source code conventions
+Since the development team is small and all members of the project, __code modifications are managed via issues and branches instead of forks__. Please follow these steps if you want to join in.
+
+#### Warning: Don't code directly against master branch
+
+1.	Clone the Main branch of the project to your development computer.
+2.	Browse project Issues in GitLab and create one if necessary - consider discussing on the Slack channel. Assign to yourself if you intend to code it up or ask first if you want to assign it to someone else.
+3.	To start work on an Issue, open it and look for the green button that says, “Create merge request”. Click the drop-down arrow and select, “Create branch”; GitLab will name the branch for you (don’t change this). Copy the branch name to your clipboard and click the “Create branch” button.
+4.	From your development computer, create a local branch of the same name, e.g. `git checkout -b 14-add-how-to-contribute-section-to-readme`.
+5. Code away, committing and pushing to the branch as you go.
+6. When the work is done, make sure your last commit comment specifies the issue is closed, e.g. `git commit -m "Closes Issue #13"`go to the Issue in the browser and click the "Create merge request" button.
+7. Use your judgement if you feel the code needs to be reviewed by someone else. If so, add at least one reviewer and ping them on Slack to let them know you're waiting on them.
+8. Typically, only a member of the Flagship Digital engineering team should accept merge requests to the Main branch.
+8. Keep the default setting of deleting the branch on merge.
+9. Once merged, you can delete your local copy of the branch.
+10. Tell people about your change on Slack.
