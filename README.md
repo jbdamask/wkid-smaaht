@@ -177,6 +177,12 @@ You're now ready to create an AWS Elastic Container Service that will pull your 
     - You can use it until you hit API call limits for [GPT-4](https://platform.openai.com/docs/guides/rate-limits/overview), then you'll have to cool your jets for a while. This could become a real pain if the app is being used by multiple people in your organization (which is likely considering it's a Slack bot).
 - How do I redeploy the Docker image if I want to change something?
     - Execute the last two lines in `scripts/create_ECR_repo_and_push_container.sh`
+    - Update the Elastic Container Service that runs this code using the AWS Management Console or CLI. 
+- Why not just use ChatGPT?
+    - You certainly can, but here are a few reasons why you may want to use this:
+        - This code uses a "system message" that tells GPT4 to behave as an AWS expert and provides a framework for the model to think through answers. Sometimes, it's responses are better than ChatGPT but not always. Try it for yourself.
+        - Sometimes you just want to access ChatGPT without logging into their website. @ChatAWS is always listening.
+        - Everyone on a Slack channel where @ChatAWS is installed can see the chats. This can be helpful if you're sharing information between team members.
 
 ## How it's Built
 This project leverages the [Bolt-Python](https://slack.dev/bolt-python/tutorial/getting-started) framework for building Slack applications, and uses code from the [Slack GPT Bot](https://github.com/alex000kim/slack-gpt-bot) project and the deeplearning.ai course, [Building Systems with the ChatGPT API](https://learn.deeplearning.ai/chatgpt-building-system/lesson/1/introduction).
