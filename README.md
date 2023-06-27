@@ -165,6 +165,11 @@ You're now ready to create an AWS Elastic Container Service that will pull your 
     - Check the box acknowledging that the script creates IAM resources and slick Submit
 - Monitor Events in the CloudFormation console. After a few minutes, the status should read CREATE_COMPLETE. If you see errors, go through the Events that caused them and ensure you didn't have any missteps. One common error is that the ARN for your secrets was wrong.
 
+- Write the provided system prompts to DynamoDB
+    ```
+    ./scripts/load_systems_prompts_into_ddb.sh
+    ```
+
 
 ## FAQ
 - Does OpenAI use my input? 
@@ -183,6 +188,8 @@ You're now ready to create an AWS Elastic Container Service that will pull your 
         - This code uses a "system message" that tells GPT4 to behave as an AWS expert and provides a framework for the model to think through answers. Sometimes, it's responses are better than ChatGPT but not always. Try it for yourself.
         - Sometimes you just want to access ChatGPT without logging into their website. @ChatAWS is always listening.
         - Everyone on a Slack channel where @ChatAWS is installed can see the chats. This can be helpful if you're sharing information between team members.
+- Can I change the system prompt?
+    -  Yes! This project provides three examples of prompts to turn GPT4 into different types of experts. You can add your own and see how they work by changing the get_prompt() method in utils.py. 
 
 ## How it's Built
 This project leverages the [Bolt-Python](https://slack.dev/bolt-python/tutorial/getting-started) framework for building Slack applications, and uses code from the [Slack GPT Bot](https://github.com/alex000kim/slack-gpt-bot) project and the deeplearning.ai course, [Building Systems with the ChatGPT API](https://learn.deeplearning.ai/chatgpt-building-system/lesson/1/introduction).
