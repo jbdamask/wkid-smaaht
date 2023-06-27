@@ -21,11 +21,6 @@ class DynamoDBPromptStrategy(PromptStrategy):
         response = table.get_item(Key={'prompt_name': prompt_name})
         return response['Item']['system_prompt']
 
-    # def get_prompt(self, item_key):
-    #     table = self.dynamodb.Table(self.table_name)
-    #     response = table.get_item(Key={'id': item_key})
-    #     return response['Item']['value']
-
 class S3PromptStrategy(PromptStrategy):
     def __init__(self, bucket_name):
         self.bucket_name = bucket_name
