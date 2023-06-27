@@ -36,6 +36,20 @@ Resources:
 #     Properties:
 #       RepositoryName: !Ref RepositoryName
 
+  GPTSystemPromptsTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: 'GPTSystemPrompts'
+      AttributeDefinitions:
+        - AttributeName: 'prompt_name'
+          AttributeType: 'S'
+      KeySchema:
+        - AttributeName: 'prompt_name'
+          KeyType: 'HASH'
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
   FargateSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -66,7 +80,7 @@ Resources:
     Type: AWS::IAM::Policy
     DependsOn: ExecutionRole
     Properties:
-      PolicyName: AllowSecretsManagerAccess
+      PolicyName: AllowSecretsManagerAccessSlackGPT
       Roles:
         - !Ref ExecutionRole
       PolicyDocument:
@@ -79,6 +93,24 @@ Resources:
               - !Ref SlackBotSecretArn
               - !Ref SlackAppSecretArn
               - !Ref OpenAIAPISecretArn
+
+  PolicyForDynamoDB:
+      Type: AWS::IAM::Policy
+      DependsOn: ExecutionRole
+      Properties:
+        PolicyName: AllowDynamoDBAccessSlackGPT
+        Roles:
+          - !Ref ExecutionRole
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:Scan
+                - dynamodb:Query
+              Resource: !GetAtt GPTSystemPromptsTable.Arn
+
 
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition

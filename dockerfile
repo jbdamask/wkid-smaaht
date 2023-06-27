@@ -14,6 +14,8 @@ COPY requirements.txt .
 # Add the src directory contents into the container at /app
 ADD src/ /app
 
+COPY gpt4_system_prompts/ /app/gpt4_system_prompts/
+
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
