@@ -16,10 +16,15 @@ class DynamoDBPromptStrategy(PromptStrategy):
         self.table_name = table_name
         self.dynamodb = boto3.resource('dynamodb')
 
-    def get_prompt(self, item_key):
+    def get_prompt(self, prompt_name):
         table = self.dynamodb.Table(self.table_name)
-        response = table.get_item(Key={'id': item_key})
-        return response['Item']['value']
+        response = table.get_item(Key={'prompt_name': prompt_name})
+        return response['Item']['system_prompt']
+
+    # def get_prompt(self, item_key):
+    #     table = self.dynamodb.Table(self.table_name)
+    #     response = table.get_item(Key={'id': item_key})
+    #     return response['Item']['value']
 
 class S3PromptStrategy(PromptStrategy):
     def __init__(self, bucket_name):
