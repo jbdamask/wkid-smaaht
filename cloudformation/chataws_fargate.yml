@@ -86,6 +86,7 @@ Resources:
             Action:
             - dynamodb:GetItem
             - dynamodb:DeleteItem
+            - dynamodb:Scan
             Resource: !GetAtt GPTSystemPromptsTable.Arn
 
 
