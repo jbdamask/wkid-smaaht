@@ -76,6 +76,28 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
   
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: ecs-tasks.amazonaws.com
+          Action: sts:AssumeRole
+      Path: /
+      Policies:
+      - PolicyName: DynamoDBAccessPolicy
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action:
+            - dynamodb:GetItem
+            - dynamodb:DeleteItem
+            #Resource: arn:aws:dynamodb:region:account-id:table/GPTSystemPrompts
+            Resource: !GetAtt GPTSystemPromptsTable.Arn
+
+
   PolicyForSecretsManager:
     Type: AWS::IAM::Policy
     DependsOn: ExecutionRole
@@ -94,22 +116,22 @@ Resources:
               - !Ref SlackAppSecretArn
               - !Ref OpenAIAPISecretArn
 
-  PolicyForDynamoDB:
-      Type: AWS::IAM::Policy
-      DependsOn: ExecutionRole
-      Properties:
-        PolicyName: AllowDynamoDBAccessSlackGPT
-        Roles:
-          - !Ref ExecutionRole
-        PolicyDocument:
-          Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Action:
-                - dynamodb:GetItem
-                - dynamodb:Scan
-                - dynamodb:Query
-              Resource: !GetAtt GPTSystemPromptsTable.Arn
+  # PolicyForDynamoDB:
+  #     Type: AWS::IAM::Policy
+  #     DependsOn: ExecutionRole
+  #     Properties:
+  #       PolicyName: AllowDynamoDBAccessSlackGPT
+  #       Roles:
+  #         - !Ref ExecutionRole
+  #       PolicyDocument:
+  #         Version: "2012-10-17"
+  #         Statement:
+  #           - Effect: Allow
+  #             Action:
+  #               - dynamodb:GetItem
+  #               - dynamodb:Scan
+  #               - dynamodb:Query
+  #             Resource: !GetAtt GPTSystemPromptsTable.Arn
 
 
   TaskDefinition:
@@ -121,6 +143,7 @@ Resources:
       RequiresCompatibilities:
         - FARGATE
       ExecutionRoleArn: !GetAtt ExecutionRole.Arn
+      TaskRoleArn: !GetAtt TaskRole.Arn
       ContainerDefinitions:
         - Name: SlackAppContainer
           Image: !Ref EcrRepositoryUri

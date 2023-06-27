@@ -39,8 +39,10 @@ if DEBUG:
 openai.api_key = OPENAI_API_KEY
 
 delimiter = "####"
-prompt = SystemPrompt(FilePromptStrategy())
-SYSTEM_PROMPT = prompt.get_prompt('gpt4_system_prompts/chataws-system-prompt.txt')
+prompt = SystemPrompt(DynamoDBPromptStrategy(table_name='GPTSystemPrompts'))
+SYSTEM_PROMPT = prompt.get_prompt('chatlaw')
+# prompt = SystemPrompt(FilePromptStrategy())
+# SYSTEM_PROMPT = prompt.get_prompt('gpt4_system_prompts/chataws-system-prompt.txt')
 
 # SYSTEM_PROMPT = f"""
 # # You are an AWS expert ChatBot. You know everything about AWS \
