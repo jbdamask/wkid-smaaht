@@ -49,10 +49,11 @@ delimiter = "####"
 # prompt = SystemPrompt(FilePromptStrategy())
 # SYSTEM_PROMPT = prompt.get_prompt('gpt4_system_prompts/chataws-system-prompt.txt')
 
+#### EXAMPLE OF GETTING SYSTEM PROMPT FROM S3
+
 #### EXAMPLE OF GETTING SYSTEM PROMPT FROM DYNAMODB TABLE
 prompt = SystemPrompt(DynamoDBPromptStrategy(table_name='GPTSystemPrompts'))
 SYSTEM_PROMPT = prompt.get_prompt('chataws')
-
 
 WAIT_MESSAGE = "Got your request. Please wait."
 N_CHUNKS_TO_CONCAT_BEFORE_UPDATING = 20
