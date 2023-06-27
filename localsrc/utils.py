@@ -45,13 +45,14 @@ if DEBUG:
 openai.api_key = OPENAI_API_KEY
 
 delimiter = "####"
+#### EXAMPLE OF GETTING SYSTEM PROMPT FROM LOCAL FILE
 # prompt = SystemPrompt(FilePromptStrategy())
 # SYSTEM_PROMPT = prompt.get_prompt('gpt4_system_prompts/chataws-system-prompt.txt')
 
-# ddb_prompt_strategy = DynamoDBPromptStrategy(table_name='GPTSystemPrompts')
-# prompt = SystemPrompt(strategy=ddb_prompt_strategy)
+#### EXAMPLE OF GETTING SYSTEM PROMPT FROM DYNAMODB TABLE
 prompt = SystemPrompt(DynamoDBPromptStrategy(table_name='GPTSystemPrompts'))
 SYSTEM_PROMPT = prompt.get_prompt('chataws')
+
 
 WAIT_MESSAGE = "Got your request. Please wait."
 N_CHUNKS_TO_CONCAT_BEFORE_UPDATING = 20
