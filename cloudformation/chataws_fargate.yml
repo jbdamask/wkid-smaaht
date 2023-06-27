@@ -10,10 +10,6 @@ Parameters:
     Description: The ID of the Subnet
     Type: AWS::EC2::Subnet::Id
 
-  # RepositoryName:
-  #   Type: String
-  #   Description: Name of the ECR repository
-
   EcrRepositoryUri:
     Description: The URI of the ECR repository
     Type: String
@@ -31,10 +27,6 @@ Parameters:
     Type: String 
 
 Resources:
-#   ECRRepository:
-#     Type: AWS::ECR::Repository
-#     Properties:
-#       RepositoryName: !Ref RepositoryName
 
   GPTSystemPromptsTable:
     Type: 'AWS::DynamoDB::Table'
@@ -94,7 +86,6 @@ Resources:
             Action:
             - dynamodb:GetItem
             - dynamodb:DeleteItem
-            #Resource: arn:aws:dynamodb:region:account-id:table/GPTSystemPrompts
             Resource: !GetAtt GPTSystemPromptsTable.Arn
 
 
@@ -116,24 +107,6 @@ Resources:
               - !Ref SlackAppSecretArn
               - !Ref OpenAIAPISecretArn
 
-  # PolicyForDynamoDB:
-  #     Type: AWS::IAM::Policy
-  #     DependsOn: ExecutionRole
-  #     Properties:
-  #       PolicyName: AllowDynamoDBAccessSlackGPT
-  #       Roles:
-  #         - !Ref ExecutionRole
-  #       PolicyDocument:
-  #         Version: "2012-10-17"
-  #         Statement:
-  #           - Effect: Allow
-  #             Action:
-  #               - dynamodb:GetItem
-  #               - dynamodb:Scan
-  #               - dynamodb:Query
-  #             Resource: !GetAtt GPTSystemPromptsTable.Arn
-
-
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
@@ -147,7 +120,6 @@ Resources:
       ContainerDefinitions:
         - Name: SlackAppContainer
           Image: !Ref EcrRepositoryUri
-          # Image: $Sub ${ECRRepository.RepositoryUri}
           Essential: true
           Secrets:
             - ValueFrom: !Ref SlackBotSecretArn
@@ -184,11 +156,3 @@ Resources:
     Properties:
       LogGroupName: /ecs/SlackAppContainer
       RetentionInDays: 7
-
-# Outputs:
-#   EcrRepositoryUrl:
-#     Description: The URL of the ECR repository
-#     Value: !Ref EcrRepositoryUrl
-  # ECRRepositoryURL:
-  #   Description: ECR repository URL
-  #   Value: !Sub "${ECRRepository.RepositoryUri}"
