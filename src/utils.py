@@ -14,7 +14,11 @@ import json
 import tiktoken
 from trafilatura import extract, fetch_url
 from trafilatura.settings import use_config
+from cachetools import LRUCache
+from dotenv import load_dotenv, find_dotenv
+_ = load_dotenv(find_dotenv()) # read local .env file
 from system_prompt import SystemPrompt, FilePromptStrategy, DynamoDBPromptStrategy, S3PromptStrategy
+from chat_manager import ChatManager
 
 # config = configparser.ConfigParser()
 # config.read('settings.ini')
@@ -39,44 +43,37 @@ if DEBUG:
 openai.api_key = OPENAI_API_KEY
 
 delimiter = "####"
-prompt = SystemPrompt(DynamoDBPromptStrategy(table_name='GPTSystemPrompts'))
-SYSTEM_PROMPT = prompt.get_prompt('chatlaw')
+#### EXAMPLE OF GETTING SYSTEM PROMPT FROM LOCAL FILE
 # prompt = SystemPrompt(FilePromptStrategy())
 # SYSTEM_PROMPT = prompt.get_prompt('gpt4_system_prompts/chataws-system-prompt.txt')
 
-# SYSTEM_PROMPT = f"""
-# # You are an AWS expert ChatBot. You know everything about AWS \
-# # and through your web browsing ability, you can easily access \
-# # current documentation in the AWS library to reason through and answer any topic. \
-# # Any web searching you do will start with official AWS documentation \
-# # and may search for other expert blogs and articles. \
-# # You will be provided with AWS support queries from users and builders. \
-# # Your answers should be targeted to the exact question asked, and not \
-# # simply include generic TL;DR information. \
-# # You will provide links to any web pages referenced as \
-# # well as concise code snippits when appropriate. \
-# # When code is asked for or if you decide it will help \
-# # you answer the question, you will use search https://github.com/aws. \
-# # Use the following step-by-step instructions to respond to the user's input. \
-# # Step 1: First decide whether the user is asking about \
-# # AWS; e.g. services, documentation, or code. If not, do your best to help \
-# # the user but remind them that your expertise is AWS. \
-# # Step 2: If the user is asking about AWS, list any assumptions \
-# # the user may have made and figure out if whether an assumption. \
-# # is true based on your expertise. \
-# # Step 3: If the user provides AWS code to debug, \
-# # review the code and determine if there are any issues that \
-# # you, as an expert, can identify. For example, if the code \
-# # is calling a spcific AWS service, are the permissions correct? \
-# # If the code is buggy, can you identify the bug? \
-# # Step 4: If the user is asking something about how AWS works, \
-# # try to find relevant code examples in the AWS documentation or from https://github.com/aws. \
-# # Step 5: Be a friendly and helpful coach. Don't be too wordy \
-# # and don't be too terse. It's ok to be a bit informal so the user is \
-# # comfortable with you but don't go overboard. \
-# # When responding to the user, always end the response with relevant links to documentation, \
-# # code examples, etc. Verify that all links work and that they are not hallucinated. \
-# # """
+#### EXAMPLE OF GETTING SYSTEM PROMPT FROM S3
+
+#### EXAMPLE OF GETTING SYSTEM PROMPT FROM DYNAMODB TABLE
+prompt = SystemPrompt(DynamoDBPromptStrategy(table_name='GPTSystemPrompts'))
+SYSTEM_PROMPT = prompt.get_prompt('chataws')
+
+# Cache that tracks Slack threads with system prompts.
+# This will be populated with ChatManager objects and keyed 
+# by Slack user_id
+cache = LRUCache(maxsize=100)
+
+# Store the GPT4 systemp prompt for the user in the particular channel
+def set_prompt_for_user_and_channel(user_id, channel_id, prompt_key):
+    c = cache.get(user_id)
+    if c is None:
+        print(f"No record for {user_id}, {channel_id}. Creating one")
+        cache[user_id] = ChatManager(user_id, channel_id, prompt_key)
+    else:
+        print(f"Found record for {user_id}, {channel_id}: ")
+        print(c)
+        c.prompt_key = prompt_key
+
+def get_slack_thread(thread_ts):
+    return cache.get(thread_ts)
+
+def get_chat_object(user_id, channel_id, thread_ts, prompt_key):
+    return cache.setdefault()
 
 WAIT_MESSAGE = "Got your request. Please wait."
 N_CHUNKS_TO_CONCAT_BEFORE_UPDATING = 20
@@ -199,8 +196,43 @@ def num_tokens_from_messages(messages, model="gpt-4"):
     return num_tokens
 
 # This builds the message object, including any previous interactions in the thread
-def process_conversation_history(conversation_history, bot_user_id):
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+def process_conversation_history(conversation_history, bot_user_id, channel_id, thread_ts, user_id):
+    # messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    sp = SYSTEM_PROMPT
+    cm = cache.get(user_id)
+    if cm is not None:
+        if DEBUG:
+            print(f"Found ChatManager object for user {user_id}")        
+        channel = cm.get_channel(channel_id)
+        if channel is not None:
+            if DEBUG:
+                print(f"Found Channel object for channel {channel_id}")              
+            found = False
+            for thread, prompt_key in channel.items():  
+                if thread_ts == thread:  
+                    found = True
+                    if DEBUG:
+                        print(f"Found object for thread {thread_ts}")         
+                    # prompt_key is now already the correct value, so no need to index
+                    if DEBUG:
+                        print(f"Found prompt key: {prompt_key}")
+                    sp = prompt.get_prompt(prompt_key)            
+            # for items in channel:
+            #     if thread_ts in items:
+            #         found = True
+            #         if DEBUG:
+            #             print(f"Found object for thread {thread_ts}")         
+            #         prompt_key = items{thread_ts}
+            #         if DEBUG:
+            #             print(f"Found prompt key for thread {thread_ts}")      
+            #         sp = prompt.get_prompt(prompt_key)
+            if not found:
+                sp = cm.prompt_key
+                cm.add_thread_to_channel(channel_id, thread_ts, sp)
+    else:
+        print(f"No ChatManager object for user {user_id}")
+
+    messages = [{"role": "system", "content": sp}]
     for message in conversation_history['messages'][:-1]:
         role = "assistant" if message['user'] == bot_user_id else "user"
         message_text = process_message(message, bot_user_id)
