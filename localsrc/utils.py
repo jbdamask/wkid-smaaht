@@ -14,10 +14,11 @@ import json
 import tiktoken
 from trafilatura import extract, fetch_url
 from trafilatura.settings import use_config
+from cachetools import LRUCache
 from dotenv import load_dotenv, find_dotenv
 _ = load_dotenv(find_dotenv()) # read local .env file
 from system_prompt import SystemPrompt, FilePromptStrategy, DynamoDBPromptStrategy, S3PromptStrategy
-
+from chat_manager import ChatManager
 
 # config = configparser.ConfigParser()
 # config.read('settings.ini')
@@ -38,9 +39,9 @@ OPENAI_API_KEY = os.getenv('OPENAI_API_KEY_CHATAWS')
 # OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 SLACK_APP_TOKEN = os.getenv('SLACK_APP_TOKEN_CHATAWS')
 # SLACK_APP_TOKEN = os.getenv('SLACK_APP_TOKEN')
-if DEBUG:
-    print("SLACK_BOT_TOKEN: ", SLACK_BOT_TOKEN)
-    print("SLACK_APP_TOKEN: ", SLACK_APP_TOKEN)
+# if DEBUG:
+#     print("SLACK_BOT_TOKEN: ", SLACK_BOT_TOKEN)
+#     print("SLACK_APP_TOKEN: ", SLACK_APP_TOKEN)
 
 openai.api_key = OPENAI_API_KEY
 
@@ -55,9 +56,55 @@ delimiter = "####"
 prompt = SystemPrompt(DynamoDBPromptStrategy(table_name='GPTSystemPrompts'))
 SYSTEM_PROMPT = prompt.get_prompt('chataws')
 
+# Cache that tracks Slack threads with system prompts.
+# This will be populated with ChatManager objects and keyed 
+# by Slack user_id
+cache = LRUCache(maxsize=100)
+
+# Store the GPT4 systemp prompt for the user in the particular channel
+def set_prompt_for_user_and_channel(user_id, channel_id, prompt_key):
+    c = cache.get(user_id)
+    if c is None:
+        print(f"No record for {user_id}, {channel_id}. Creating one")
+        cache[user_id] = ChatManager(user_id, channel_id, prompt_key)
+    else:
+        print(f"Found record for {user_id}, {channel_id}: ")
+        print(c)
+        c.prompt_key = prompt_key
+
+def get_slack_thread(thread_ts):
+    return cache.get(thread_ts)
+
+def get_chat_object(user_id, channel_id, thread_ts, prompt_key):
+    return cache.setdefault()
+
 WAIT_MESSAGE = "Got your request. Please wait."
 N_CHUNKS_TO_CONCAT_BEFORE_UPDATING = 20
 # MAX_TOKENS = 8192
+
+
+# When combined with a /set_prompt Slack slash command you enable in the app
+# using the Slack api gui, allows a user to change the system prompt at run time. 
+# TODO Instead of setting this globally, it should be set for the user_id + channel_id.
+# And since we're going to track that, I don't want to store the entire system prompt
+# in the data structure, just the key (which is what's passed in here). But that means
+# I'll want to store a local dict of prompt_keys and system_prompts. I could look it up
+# at run time but that feels like a lot of unnecessary chatter. I also don't want to 
+# populate my prompt data structure at boot-up because prompts may CRUD at runtime.
+# When you think about it, system prompt should be tied to the user and channel AND
+# thread. But what's interesting about this problem is that the thread doesn't exist 
+# when a user sets the prompt. Also, a user+channel combination can have many threads 
+# each with different system prompts (potentially). So my data structure needs to be 
+# able to look up prompts by user+channel+thread (which can be weird if a thread)
+# doesn't exist yet.
+# Maybe my chat manager class contains an internal dictionary of threads and system prompts?
+# def set_system_prompt(system_prompt, user_id, channel_id):
+#     chat = ChatManager(channel_id, user_id, system_prompt)
+#     global SYSTEM_PROMPT
+#     try:
+#         SYSTEM_PROMPT = prompt.get_prompt(system_prompt)
+#     except Exception as e:
+#         SYSTEM_PROMPT = prompt.get_prompt('chataws')
 
 def extract_url_list(text):
     url_pattern = re.compile(
@@ -176,16 +223,51 @@ def num_tokens_from_messages(messages, model="gpt-4"):
     return num_tokens
 
 # This builds the message object, including any previous interactions in the thread
-def process_conversation_history(conversation_history, bot_user_id):
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+def process_conversation_history(conversation_history, bot_user_id, channel_id, thread_ts, user_id):
+    # messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    sp = SYSTEM_PROMPT
+    cm = cache.get(user_id)
+    if cm is not None:
+        if DEBUG:
+            print(f"Found ChatManager object for user {user_id}")        
+        channel = cm.get_channel(channel_id)
+        if channel is not None:
+            if DEBUG:
+                print(f"Found Channel object for channel {channel_id}")              
+            found = False
+            for thread, prompt_key in channel.items():  
+                if thread_ts == thread:  
+                    found = True
+                    if DEBUG:
+                        print(f"Found object for thread {thread_ts}")         
+                    # prompt_key is now already the correct value, so no need to index
+                    if DEBUG:
+                        print(f"Found prompt key: {prompt_key}")
+                    sp = prompt.get_prompt(prompt_key)            
+            # for items in channel:
+            #     if thread_ts in items:
+            #         found = True
+            #         if DEBUG:
+            #             print(f"Found object for thread {thread_ts}")         
+            #         prompt_key = items{thread_ts}
+            #         if DEBUG:
+            #             print(f"Found prompt key for thread {thread_ts}")      
+            #         sp = prompt.get_prompt(prompt_key)
+            if not found:
+                sp = cm.prompt_key
+                cm.add_thread_to_channel(channel_id, thread_ts, sp)
+    else:
+        print(f"No ChatManager object for user {user_id}")
+
+    messages = [{"role": "system", "content": sp}]
     for message in conversation_history['messages'][:-1]:
         role = "assistant" if message['user'] == bot_user_id else "user"
         message_text = process_message(message, bot_user_id)
         if message_text:
             messages.append({"role": role, "content": message_text})
-    if DEBUG:
-        print("process_conversation_history()")
-        pprint(messages)
+    # if DEBUG:
+    #     print("process_conversation_history()")
+    #     pprint(messages)
     return messages
 
 
