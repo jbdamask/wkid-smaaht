@@ -43,32 +43,16 @@ There are three major parts to this application that need to be configured in th
 - Login to your Slack workspace
 - Follow Slack's [Basic app setup guide](https://api.slack.com/authentication/basics)
     - Click the Create a new Slack app button on the page above. 
-    - This will take you to the https://api.slack.com site for configuring your app
-- Specific configuration for this app:
-    - App token:
-        - Click, Generate Tokens and Scopes
-            - Name: ChatAWSSocketToken
-            - Scope: connections:write
-        - Save the token. You'll need it later
-    - Bot token:
-        - Navigate to Oauth & Permissions. Add the following Scopes:
-            - app_mentions:read
-            - channels:history
-            - channels:read
-            - chat:write
-            - groups:history
-            - groups:read
-            - im:history
-            - im:read
-            - links:read
-            - mpim:history
-            - mpim:read
-            - mpim:write
-        - Click Request to Install 
-        - After the app has been approved by your workspace administrator, click the Install to Workspace button and click Allow 
+    - This will take you to the https://api.slack.com site for configuring your app. 
+        - Click "Create New App" button
+        - Choose to create an app **from an app manifest**.
+        - Choose a Slack workspace for your app
+        - Select YAML and paste the contents of `slack-app-manifest.yml' in the input field. Click *Next*
+    - Click Install to Workspace (or Request to Install if you're not a Slack admin)        
+    - Click Allow 
 
-            <img src="images/slack-app-install.png" alt="Allow" width="300"/>
-        - You can now get your bot user access token under the Oauth & Perissions sidebar. Save it in a safe place (**do not put this in source control**)
+        <img src="images/slack-app-install.png" alt="Allow" width="300"/>
+    - You can now get your bot user access token under the Oauth & Perissions sidebar. Save it in a safe place (**do not put this in source control**)
 - Next, you need to invite your app to a channel. Go to a channel of your choice and type `/invite`
 
     <img src="images/slack-app-dev.png" alt="Allow" width="400"/>
@@ -82,7 +66,7 @@ There are three major parts to this application that need to be configured in th
         https://slack.com/api/chat.postMessage \
         -H "Authorization: Bearer <Slack bot token>"
         ```
-- Now you need to configure your app to listen for events (again, this is done via https://api.slack.com)
+<!-- - Now you need to configure your app to listen for events (again, this is done via https://api.slack.com)
     - The app communicates over websockets, so you'll first need to enable socket mode.
         - Navigate to Socket Mode
         - Click "Enable Socket Mode"
@@ -93,10 +77,11 @@ There are three major parts to this application that need to be configured in th
         - message.groups
         - message.im
         - message.mpim
-    - Click Save Changes button
-- Go to the Slack channel where you invited your new app and type `@ChatAWS hello`. You should get a friendly response 
+    - Click Save Changes button -->
 
-    <img src="images/chataws-hello.png" alt="Allow" width="300"/>
+<!-- - Go to the Slack channel where you invited your new app and type `@ChatAWS hello`. You should get a friendly response 
+
+    <img src="images/chataws-hello.png" alt="Allow" width="300"/> -->
 
 ### 2. Code configuration
 *Note these instructions are for a Mac. You may have to tweak if running on Windows or other systems*
@@ -112,10 +97,7 @@ There are three major parts to this application that need to be configured in th
     python -m venv .venv
     source .venv/bin/activate
     pip install -r requirements.txt
-    # Set local environment variables. Here's how to do it on a Mac
-    export SLACK_BOT_TOKEN_CHATAWS=<bot token>
-    export SLACK_APP_TOKEN_CHATAWS=<app token>
-    export OPENAI_API_KEY_CHATAWS=<openai api key>
+    Open .env_TEMPLATE and set the values. Save as .env
     python localsrc/localapp.py
     ```
 
@@ -144,7 +126,7 @@ A production Slack application shouldn't run on your laptop; it should run in a 
     aws ecr describe-repositories --repository-names chat-aws-slack --query 'repositories[0].repositoryUri' --output text
     ```
 
-- Write your OpenAI API key and Slack bot and app tokens to AWS Secrets Manager.
+- Write your OpenAI API key and Slack bot and app tokens to AWS Secrets Manager. Use the same values you put into your .env (that file is only used for local testing)
     ```
     ./scripts/create_secrets.sh
     ```
@@ -157,9 +139,9 @@ You're now ready to create an AWS Elastic Container Service that will pull your 
     - Stack name: chat-aws-slack
     - Paste in values from what you created earlier for
         - EcrRepositoryUri
-        - OpenAIAPISecretArn
-        - SlackAppSecretArn
-        - SlackBotSecretArn
+        - OpenAIAPISecretArn (NOTE: THIS IS THE SECRETS MANAGER RECORD ARN, NOT THE TOKEN)
+        - SlackAppSecretArn (NOTE: THIS IS THE SECRETS MANAGER RECORD ARN, NOT THE TOKEN)
+        - SlackBotSecretArn (NOTE: THIS IS THE SECRETS MANAGER RECORD ARN, NOT THE TOKEN)
     - Choose your vpc and private subnet IDs
     - Follow through the rest of the CloudFormation wizard. Add the Tag `AppName:ChatAWS Slack`, otherwise just leave the defaults and keep clicking Next
     - Check the box acknowledging that the script creates IAM resources and slick Submit
@@ -167,7 +149,7 @@ You're now ready to create an AWS Elastic Container Service that will pull your 
 
 - Write the provided system prompts to DynamoDB
     ```
-    ./scripts/load_systems_prompts_into_ddb.sh
+    ./scripts/load_system_prompts_into_ddb.sh
     ```
 
 

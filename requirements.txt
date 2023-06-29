@@ -4,6 +4,7 @@ async-timeout==4.0.2
 attrs==23.1.0
 boto3==1.26.151
 botocore==1.29.151
+cachetools==5.3.1
 certifi==2023.5.7
 charset-normalizer==3.1.0
 courlan==0.9.3

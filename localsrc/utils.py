@@ -47,14 +47,14 @@ openai.api_key = OPENAI_API_KEY
 
 delimiter = "####"
 #### EXAMPLE OF GETTING SYSTEM PROMPT FROM LOCAL FILE
-# prompt = SystemPrompt(FilePromptStrategy())
-# SYSTEM_PROMPT = prompt.get_prompt('gpt4_system_prompts/chataws-system-prompt.txt')
+prompt = SystemPrompt(FilePromptStrategy())
+SYSTEM_PROMPT = prompt.get_prompt('gpt4_system_prompts/chataws-system-prompt.txt')
 
 #### EXAMPLE OF GETTING SYSTEM PROMPT FROM S3
 
 #### EXAMPLE OF GETTING SYSTEM PROMPT FROM DYNAMODB TABLE
-prompt = SystemPrompt(DynamoDBPromptStrategy(table_name='GPTSystemPrompts'))
-SYSTEM_PROMPT = prompt.get_prompt('chataws')
+# prompt = SystemPrompt(DynamoDBPromptStrategy(table_name='GPTSystemPrompts'))
+# SYSTEM_PROMPT = prompt.get_prompt('chataws')
 
 # Cache that tracks Slack threads with system prompts.
 # This will be populated with ChatManager objects and keyed 
