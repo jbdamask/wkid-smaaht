@@ -91,7 +91,7 @@ There are three major parts to this application that need to be configured in th
     cd chataws-slack
     chmod +x scripts/*.sh
     ```
-- It's a good idea to try your application locally, which can be done using the handy localapp.py script provided:
+- It's a good idea to try your application locally, which can be done using the handy localapp.py script provided. To make things even easier, create a new Slack Workspace for development that you have full control over.
     ```
     # Create virtual Python environment to isolate this project from your global Python
     python -m venv .venv
@@ -151,6 +151,23 @@ You're now ready to create an AWS Elastic Container Service that will pull your 
     ```
     ./scripts/load_system_prompts_into_ddb.sh
     ```
+- It's time to start the service
+    ```
+    ./scripts/start_ECS_service.sh
+    ```
+
+- When this returns you're (finally) ready to use the app
+
+    <img src="images/aws-hello.png" alt="Allow" width="300"/>
+
+
+Use it to help with CLI commands
+
+<img src="images/old-ec2.png" alt="Allow" width="500"/>
+
+Or to check your code
+
+<img src="images/cfn-bug.png" alt="Allow" width="500"/>
 
 
 ## FAQ
@@ -172,6 +189,18 @@ You're now ready to create an AWS Elastic Container Service that will pull your 
         - Everyone on a Slack channel where @ChatAWS is installed can see the chats. This can be helpful if you're sharing information between team members.
 - Can I change the system prompt?
     -  Yes! This project provides three examples of prompts to turn GPT4 into different types of experts. You can add your own and see how they work by changing the get_prompt() method in utils.py. 
+
+## Advanced
+
+This bot can change! When programming GPT4 you can tell it what you want it to be using something called "System messages". This app stores several System messages in DynamoDB and exposes them to Slack via slash commands. 
+
+<img src="images/prompts.png" alt="Allow" width="500"/>
+
+When changed, the personality of the new bot will be specific to your user and channel. 
+
+<img src="images/chatbadmf.png" alt="Allow" width="500"/>
+
+You can add your own system prompts to the DynamoDB table and they'll automatically appear in Slack.
 
 ## How it's Built
 This project leverages the [Bolt-Python](https://slack.dev/bolt-python/tutorial/getting-started) framework for building Slack applications, and uses code from the [Slack GPT Bot](https://github.com/alex000kim/slack-gpt-bot) project and the deeplearning.ai course, [Building Systems with the ChatGPT API](https://learn.deeplearning.ai/chatgpt-building-system/lesson/1/introduction).

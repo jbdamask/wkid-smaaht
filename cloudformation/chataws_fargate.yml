@@ -53,6 +53,8 @@ Resources:
 
   ECSCluster:
     Type: AWS::ECS::Cluster
+    Properties:
+        ClusterName: ChatAWSCluster  # Add this line with your desired cluster name    
 
   ExecutionRole:
     Type: AWS::IAM::Role
