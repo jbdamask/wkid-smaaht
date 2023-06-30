@@ -115,12 +115,15 @@ A production Slack application shouldn't run on your laptop; it should run in a 
     
     ``` 
     ./scripts/create_ECR_repo_and_push_container.sh
-    Enter your repository name: chat-aws-slack
-    Enter your region: \<your AWS region\>
-    Enter your account ID: <your account id>
+    Enter your AWS account ID: <your account id>
+    Enter your AWS region: \<your AWS region\>
     ```
 
-    This will take a couple of minutes to run (if you encounter an error, paste it into ChatGPT and see if you can troubleshoot). When finished, get the URI for the repo and save it for later
+    This will:
+        1. Create an Elastic Container Registry repo called "chat-aws-slack", if it doesn't exist
+        2. Build an image from the dockerfile
+        3. Push the image to the ECR repo
+    It can take a couple of minutes to run. When finished, note the URI for the repo and save it for later
 
     ```
     aws ecr describe-repositories --repository-names chat-aws-slack --query 'repositories[0].repositoryUri' --output text
@@ -187,8 +190,14 @@ Or to check your code
         - This code uses a "system message" that tells GPT4 to behave as an AWS expert and provides a framework for the model to think through answers. Sometimes, it's responses are better than ChatGPT but not always. Try it for yourself.
         - Sometimes you just want to access ChatGPT without logging into their website. @ChatAWS is always listening.
         - Everyone on a Slack channel where @ChatAWS is installed can see the chats. This can be helpful if you're sharing information between team members.
-- Can I change the system prompt?
-    -  Yes! This project provides three examples of prompts to turn GPT4 into different types of experts. You can add your own and see how they work by changing the get_prompt() method in utils.py. 
+- Is there anything not to love?
+    - Yep. A bunch of stuff starting with:
+        - You may hit GPT4 API limits
+        - You may need to restart the service using `./scripts/start_ECS_service.sh` if the bot stops responding in Slack
+        - This bot hasn't been stress-tested so if you have many users in Slack, things may bonk out.
+        - Standard rules of using LLMs apply, namely that you should always review responses for accuracy, completeness and bias.
+
+
 
 ## Advanced
 

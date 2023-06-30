@@ -19,5 +19,8 @@ COPY gpt4_system_prompts/ /app/gpt4_system_prompts/
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Set PYTHONUNBUFFERED environment variable
+ENV PYTHONUNBUFFERED=1
+
 # Run chataws.py when the container launches
 CMD ["python", "chataws.py"]
