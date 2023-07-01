@@ -4,3 +4,4 @@ localsrc/__pycache__
 __pycache__/
 settings.ini
 .DS_Store
+.vscode/
