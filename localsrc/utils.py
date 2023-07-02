@@ -33,11 +33,11 @@ models = {
 MODEL = "gpt-4"
 MAX_TOKENS = models[MODEL]["max_token"]
 
-SLACK_BOT_TOKEN = os.getenv('SLACK_BOT_TOKEN_CHATAWS')
+SLACK_BOT_TOKEN = os.getenv('SLACK_BOT_TOKEN_WKID_SMAAHT')
 # SLACK_BOT_TOKEN = os.getenv('SLACK_BOT_TOKEN')
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY_CHATAWS')
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY_WKID_SMAAHT')
 # OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-SLACK_APP_TOKEN = os.getenv('SLACK_APP_TOKEN_CHATAWS')
+SLACK_APP_TOKEN = os.getenv('SLACK_APP_TOKEN_WKID_SMAAHT')
 # SLACK_APP_TOKEN = os.getenv('SLACK_APP_TOKEN')
 # if DEBUG:
 #     print("SLACK_BOT_TOKEN: ", SLACK_BOT_TOKEN)
@@ -48,7 +48,7 @@ openai.api_key = OPENAI_API_KEY
 delimiter = "####"
 #### EXAMPLE OF GETTING SYSTEM PROMPT FROM LOCAL FILE
 prompt = SystemPrompt(FilePromptStrategy())
-SYSTEM_PROMPT = prompt.get_prompt('gpt4_system_prompts/chataws-system-prompt.txt')
+SYSTEM_PROMPT = prompt.get_prompt('gpt4_system_prompts/default-system-prompt.txt')
 
 #### EXAMPLE OF GETTING SYSTEM PROMPT FROM S3
 
