@@ -1,17 +1,17 @@
-# ChatAWS Slack
+# Wkid Smaaht <img src="images/wkid_smaaht_web.png" alt="Allow" width="100"/>
 
 ## Description
 
-ChatAWS Slack is a GPT-backed chatbot that integrates with Slack. It's like having your own AWS expert available 24/7. Forget about Googling, reading AWS documentation or spelunking old Stack Overflow posts, just ask @ChatAWS!
+Wkid Smaaht Slack brings the power of GPT4 to Slack. It's like having an expert in any topic available 24/7. Forget about Googling, just ask @Wkid Smaaht!
 
 ## Features
 
 - GPT-powered: Get intelligent, human-like responses thanks to GPT-4
 - Serverless: Runs on AWS Fargate. This means it's always on and there's no infrastructure to manage
-- Easy to use: Just type @ChatAWS in Slack
+- Easy to use: Just type @Wkid Smaaht in Slack
 
 ## Examples
-![CLI commands](/images/s3-search.png)
+![CLI commands](/images/s3-search.p)
 
 ## Prerequisites
 
@@ -37,7 +37,17 @@ ChatAWS Slack is a GPT-backed chatbot that integrates with Slack. It's like havi
 
 ## Installation & Configuration
 
-There are three major parts to this application that need to be configured in the following order:
+There are three major components to this application: the code, the AWS environment to run it and the Slack app itself. Start by downloading the codebase:
+
+*Note these instructions are for a Mac. You may have to tweak if running on Windows or other systems*
+- Download latest release or clone this repo into a local folder with a python virtual environment
+    ```
+    git clone https://gitlab.com/flagship-informatics/flagship-digital/aws/Wkid Smaaht-slack.git
+    cd Wkid Smaaht-slack
+    chmod +x scripts/*.sh
+    ```
+
+
 
 ### 1. Slack app creation
 - Login to your Slack workspace
@@ -52,45 +62,35 @@ There are three major parts to this application that need to be configured in th
     - Click Allow 
 
         <img src="images/slack-app-install.png" alt="Allow" width="300"/>
-    - You can now get your bot user access token under the Oauth & Perissions sidebar. Save it in a safe place (**do not put this in source control**)
+    - Get Slack App and Bot tokens
+        - Under Basic Information, scroll down to App-Level Tokens and click Generate Token and Scopes
+            - Token Name: WkidSmaahtAppToken
+            - Permission: connections:write
+            - Click the Generate button
+            - Copy the token to a safe place; you'll need it later
+        - Go to Oauth & Perissions sidebar and look for Bot User OAuth Token. Copy and store for later
 - Next, you need to invite your app to a channel. Go to a channel of your choice and type `/invite`
 
     <img src="images/slack-app-dev.png" alt="Allow" width="400"/>
-- Search for ChatAWS and click Add
-- Verify you can call it by typing `@ChatAWS`. It won't do anything yet.
+- Search for Wkid Smaaht and click Add
+- Verify you can call it by typing `@Wkid Smaaht`. It won't do anything yet.
 - Verify the app can write to the channel. 
     - Get the Slack channel id for the channel you just invited the bot to (you can find this in Slack by clicking the drop down your channel name and scrolling to the bottom)
-    - Post a message
+    - Open a Terminal window on your computer and post a message from Wkid Smaaht
         ```
-        curl -X POST -F channel=<channel ID> -F text="ChatAWS ready to go" \
+        curl -X POST -F channel=<channel ID> -F text="Wkid Smaaht ready to go" \
         https://slack.com/api/chat.postMessage \
         -H "Authorization: Bearer <Slack bot token>"
         ```
-<!-- - Now you need to configure your app to listen for events (again, this is done via https://api.slack.com)
-    - The app communicates over websockets, so you'll first need to enable socket mode.
-        - Navigate to Socket Mode
-        - Click "Enable Socket Mode"
-    - In the https://api.slack.com page for your ChatAWS app, navigate to Event Subscriptions and click the Enable Events toggle
-    - Subscribe to the following events:
-        - app_mention
-        - message.channels
-        - message.groups
-        - message.im
-        - message.mpim
-    - Click Save Changes button -->
+    
+        <img src="images/wkid_smaaht_ready2go.png" alt="Allow" width="250"/>
 
-<!-- - Go to the Slack channel where you invited your new app and type `@ChatAWS hello`. You should get a friendly response 
-
-    <img src="images/chataws-hello.png" alt="Allow" width="300"/> -->
+    If all looks good, move on to the next section.
 
 ### 2. Code configuration
-*Note these instructions are for a Mac. You may have to tweak if running on Windows or other systems*
-- Download latest release or clone this repo into a local folder with a python virtual environment
-    ```
-    git clone https://gitlab.com/flagship-informatics/flagship-digital/aws/chataws-slack.git
-    cd chataws-slack
-    chmod +x scripts/*.sh
-    ```
+
+- The Slack App icon is in the codebase. If you want to set it, go to the Slack web page you used to configure your app and find the Add App Icon under Basic Information. Upload `images/wkid_smaaht_small.jpg`
+
 - It's a good idea to try your application locally, which can be done using the handy localapp.py script provided. To make things even easier, create a new Slack Workspace for development that you have full control over.
     ```
     # Create virtual Python environment to isolate this project from your global Python
@@ -138,7 +138,7 @@ A production Slack application shouldn't run on your laptop; it should run in a 
 You're now ready to create an AWS Elastic Container Service that will pull your image from ECR and run it. We use AWS Fargate so there's no need to manage EC2s. 
 
 - Open the AWS Management Console and login
-- Navigate to CloudFormation and create a stack with new resources using the file `cloudformation/chataws_fargate.yml`
+- Navigate to CloudFormation and create a stack with new resources using the file `cloudformation/Wkid Smaaht_fargate.yml`
     - Stack name: chat-aws-slack
     - Paste in values from what you created earlier for
         - EcrRepositoryUri
@@ -146,7 +146,7 @@ You're now ready to create an AWS Elastic Container Service that will pull your 
         - SlackAppSecretArn (NOTE: THIS IS THE SECRETS MANAGER RECORD ARN, NOT THE TOKEN)
         - SlackBotSecretArn (NOTE: THIS IS THE SECRETS MANAGER RECORD ARN, NOT THE TOKEN)
     - Choose your vpc and private subnet IDs
-    - Follow through the rest of the CloudFormation wizard. Add the Tag `AppName:ChatAWS Slack`, otherwise just leave the defaults and keep clicking Next
+    - Follow through the rest of the CloudFormation wizard. Add the Tag `AppName:Wkid Smaaht Slack`, otherwise just leave the defaults and keep clicking Next
     - Check the box acknowledging that the script creates IAM resources and slick Submit
 - Monitor Events in the CloudFormation console. After a few minutes, the status should read CREATE_COMPLETE. If you see errors, go through the Events that caused them and ensure you didn't have any missteps. One common error is that the ARN for your secrets was wrong.
 
@@ -176,7 +176,7 @@ Or to check your code
 ## FAQ
 - Does OpenAI use my input? 
     - Per [OpenAI's API Data Usage policy from May 2023](https://openai.com/policies/api-data-usage-policies) OpenAI will not use your conversations to train their models. Still, it's up to you to abide by any constraints or policies set by your organization.
-- Does ChatAWS remember my chats? 
+- Does Wkid Smaaht remember my chats? 
     - Yes. Though this hasn't been thoroughly tested. The code responds in Slack threads and each call to the OpenAI API includes the thread history. Chats from different threads don't appear to bleed into one another.
 - Does it hallucinate?
     - Yes. But perhaps not as much as regular ChatGPT. This happens mostly with URLs it provides in the response. The model is told to validate all links before providing them to the user but it doesn't always work.
@@ -188,8 +188,8 @@ Or to check your code
 - Why not just use ChatGPT?
     - You certainly can, but here are a few reasons why you may want to use this:
         - This code uses a "system message" that tells GPT4 to behave as an AWS expert and provides a framework for the model to think through answers. Sometimes, it's responses are better than ChatGPT but not always. Try it for yourself.
-        - Sometimes you just want to access ChatGPT without logging into their website. @ChatAWS is always listening.
-        - Everyone on a Slack channel where @ChatAWS is installed can see the chats. This can be helpful if you're sharing information between team members.
+        - Sometimes you just want to access ChatGPT without logging into their website. @Wkid Smaaht is always listening.
+        - Everyone on a Slack channel where @Wkid Smaaht is installed can see the chats. This can be helpful if you're sharing information between team members.
 - Is there anything not to love?
     - Yep. A bunch of stuff starting with:
         - You may hit GPT4 API limits
@@ -216,7 +216,7 @@ This project leverages the [Bolt-Python](https://slack.dev/bolt-python/tutorial/
 
 ### Architecture
 
-<img src="images/ChatAWS%20Slack%20App.png" alt="Allow" width="500"/>
+<img src="images/Wkid%20Smaaht%20Architecture.png" alt="Allow" width="500"/>
 
 ---
 <!-- CONTRIBUTING -->

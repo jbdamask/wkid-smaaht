@@ -1,8 +1,8 @@
 display_information:
-  name: ChatAWS
+  name: Wkid Smaaht
 features:
   bot_user:
-    display_name: ChatAWS
+    display_name: Wkid Smaaht
     always_online: false
   slash_commands:
     - command: /prompts
