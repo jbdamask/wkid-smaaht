@@ -170,7 +170,7 @@ You're now ready to create an AWS Elastic Container Service that will pull your 
 
 - When this returns you're (finally) ready to use the app
 
-    <img src="images/aws-hello.png" alt="Allow" width="300"/>
+    <img src="images/wkid_smaaht_who_are_u.png" alt="Allow" width="500"/>
 
 
 Use it to help with CLI commands
