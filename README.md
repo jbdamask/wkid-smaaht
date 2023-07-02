@@ -43,14 +43,16 @@ There are three major components to this application: the code, the AWS environm
 - Download latest release or clone this repo into a local folder with a python virtual environment
     ```
     git clone https://gitlab.com/flagship-informatics/flagship-digital/aws/Wkid Smaaht-slack.git
-    cd Wkid Smaaht-slack
+    ```
+
+- Set shell scripts to executable
+    ```
+    cd wkid_smaaht
     chmod +x scripts/*.sh
     ```
 
-
-
-### 1. Slack app creation
-- Login to your Slack workspace
+### Slack app creation
+- Login to your Slack workspace online. You can create one for free if you don't have one.
 - Follow Slack's [Basic app setup guide](https://api.slack.com/authentication/basics)
     - Click the Create a new Slack app button on the page above. 
     - This will take you to the https://api.slack.com site for configuring your app. 
@@ -62,6 +64,9 @@ There are three major components to this application: the code, the AWS environm
     - Click Allow 
 
         <img src="images/slack-app-install.png" alt="Allow" width="300"/>
+    
+    - To set the Slack App icon, look for the Add App Icon under Basic Information. Upload `images/wkid_smaaht_small.jpg`
+
     - Get Slack App and Bot tokens
         - Under Basic Information, scroll down to App-Level Tokens and click Generate Token and Scopes
             - Token Name: WkidSmaahtAppToken
@@ -87,17 +92,21 @@ There are three major components to this application: the code, the AWS environm
 
     If all looks good, move on to the next section.
 
-### 2. Code configuration
+### Code configuration
 
-- The Slack App icon is in the codebase. If you want to set it, go to the Slack web page you used to configure your app and find the Add App Icon under Basic Information. Upload `images/wkid_smaaht_small.jpg`
+- It's a good idea to try your application locally; you'll find code for this under the localsrc folder. Go back to your computer terminal and make sure you're in the wkid_smaaht folder.
 
-- It's a good idea to try your application locally, which can be done using the handy localapp.py script provided. To make things even easier, create a new Slack Workspace for development that you have full control over.
     ```
-    # Create virtual Python environment to isolate this project from your global Python
     python -m venv .venv
     source .venv/bin/activate
     pip install -r requirements.txt
-    Open .env_TEMPLATE and set the values. Save as .env
+    ```
+
+- Open .env_TEMPLATE and save as .env. Then set the values accordingly. ***IMPORTANT: The .gitignore file for this project specifies that the file ".env" be excluded from upload. But if you add your keys to the .env_TEMPLATE file and check in your code, your keys will be in your git repo!***
+
+- Now run the app
+
+    ```
     python localsrc/localapp.py
     ```
 

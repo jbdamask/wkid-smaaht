@@ -1,5 +1,8 @@
 display_information:
   name: Wkid Smaaht
+  description: GPT4 on Slack!
+  background_color: "#000000"
+  long_description: GPT4 application for Slack. Use as-is or specify an expert to use, e.g. AWS expert, helpdesk, HR, bioinformatics, etc. You can invite this application to any channel you like so that Wkid Smaaht is always there!
 features:
   bot_user:
     display_name: Wkid Smaaht
