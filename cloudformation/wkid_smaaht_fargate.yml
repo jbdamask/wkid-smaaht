@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Stack for creating Fargate and resources associated with the ChatAWS application
+Description: Stack for creating Fargate and resources associated with the Wkid Smaaht application
 
 Parameters:
   VpcId:
@@ -54,7 +54,7 @@ Resources:
   ECSCluster:
     Type: AWS::ECS::Cluster
     Properties:
-        ClusterName: ChatAWSCluster  # Add this line with your desired cluster name    
+        ClusterName: Wkid SmaahtCluster  # Add this line with your desired cluster name    
 
   ExecutionRole:
     Type: AWS::IAM::Role
@@ -126,11 +126,11 @@ Resources:
           Essential: true
           Secrets:
             - ValueFrom: !Ref SlackBotSecretArn
-              Name: SLACK_BOT_TOKEN_CHATAWS
+              Name: SLACK_BOT_TOKEN_WKID_SMAAHT
             - ValueFrom: !Ref OpenAIAPISecretArn
-              Name: OPENAI_API_KEY_CHATAWS
+              Name: OPENAI_API_KEY_WKID_SMAAHT
             - ValueFrom: !Ref SlackAppSecretArn
-              Name: SLACK_APP_TOKEN_CHATAWS              
+              Name: SLACK_APP_TOKEN_WKID_SMAAHT             
           LogConfiguration:
             LogDriver: awslogs
             Options:
