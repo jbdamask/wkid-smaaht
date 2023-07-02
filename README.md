@@ -173,7 +173,7 @@ You're now ready to create an AWS Elastic Container Service that will pull your 
     <img src="images/wkid_smaaht_who_are_u.png" alt="Allow" width="500"/>
 
 
-Use it to help with CLI commands
+You can use Wkid Smaaht for anything you'd use ChatGPT for.
 
 <img src="images/old-ec2.png" alt="Allow" width="500"/>
 

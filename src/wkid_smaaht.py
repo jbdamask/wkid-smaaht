@@ -15,8 +15,10 @@ from utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,
                    num_tokens_from_messages, process_conversation_history,
                    update_chat, moderate_messages, get_completion_from_messages)
 
+# Set the Slack App bot token
 app = App(token=SLACK_BOT_TOKEN)
 
+# Retrieve text from the Slack conversation thread
 def get_conversation_history(channel_id, thread_ts):
     return app.client.conversations_replies(
         channel=channel_id,
