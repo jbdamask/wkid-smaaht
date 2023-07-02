@@ -147,7 +147,7 @@ A production Slack application shouldn't run on your laptop, but it can run in a
 You're now ready to create an AWS Elastic Container Service that will pull your image from ECR and run it. We use AWS Fargate so there's no need to manage EC2s. 
 
 - Open the AWS Management Console and login
-- Navigate to CloudFormation and create a stack with new resources using the file `cloudformation/Wkid Smaaht_fargate.yml`
+- Navigate to CloudFormation and create a stack with new resources using the file `cloudformation/wkid_smaaht_fargate.yml`
     - Stack name: chat-aws-slack
     - Paste in values from what you created earlier for
         - EcrRepositoryUri

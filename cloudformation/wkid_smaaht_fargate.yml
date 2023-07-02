@@ -54,7 +54,7 @@ Resources:
   ECSCluster:
     Type: AWS::ECS::Cluster
     Properties:
-        ClusterName: Wkid SmaahtCluster  # Add this line with your desired cluster name    
+        ClusterName: WkidSmaahtCluster  # Add this line with your desired cluster name    
 
   ExecutionRole:
     Type: AWS::IAM::Role

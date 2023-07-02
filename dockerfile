@@ -23,4 +23,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 ENV PYTHONUNBUFFERED=1
 
 # Run chataws.py when the container launches
-CMD ["python", "chataws.py"]
+CMD ["python", "wkid_smaaht.py"]
