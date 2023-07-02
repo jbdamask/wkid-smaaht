@@ -112,11 +112,11 @@ There are three major components to this application: the code, the AWS environm
 
 - If everything went well, you'll be able to call the app from Slack
 
-    <img src="images/what-is-aws.png" alt="Allow" width="500"/>
+    <img src="images/wkid_smaaht_hi.png" alt="Allow" width="500"/>
 
-Did you make it here? Sweet. Go ahead and stop localapp.py by hitting Ctrl c and read on.
+Did you make it here? Sweet. Go ahead and stop localapp.py by hitting Ctrl c and read on...or just keep asking it things; some responses are pretty funny.
 
-### 3. Docker build and AWS configuration
+### Docker build and AWS configuration
 
 A production Slack application shouldn't run on your laptop; it should run in a container in your AWS account. This section will walk you through creating a Docker image, publishing it to an AWS Elastic Container Registry (ECR) repository and running it as a serverless application that's always on.
 
