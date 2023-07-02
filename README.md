@@ -118,7 +118,7 @@ Did you make it here? Sweet. Go ahead and stop localapp.py by hitting Ctrl c and
 
 ### Docker build and AWS configuration
 
-A production Slack application shouldn't run on your laptop; it should run in a container in your AWS account. This section will walk you through creating a Docker image, publishing it to an AWS Elastic Container Registry (ECR) repository and running it as a serverless application that's always on.
+A production Slack application shouldn't run on your laptop, but it can run in a container in your AWS account. This section will walk you through creating a Docker image, publishing it to an AWS Elastic Container Registry (ECR) repository and running it as a serverless application that's always on.
 
 - Create your AWS Elastic Container Repository (ECR), your Docker image and push the image to your new repo
     

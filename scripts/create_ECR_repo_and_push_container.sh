@@ -5,7 +5,7 @@
 read -p "Enter your AWS account ID: " account_id
 read -p "Enter your AWS region: " region
 
-my_repo="chat-aws-slack"
+my_repo="wkid-smaaht-slack"
 
 # Create ECR repository
 aws ecr create-repository --repository-name $my_repo > /dev/null 2>&1
