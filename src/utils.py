@@ -33,9 +33,9 @@ models = {
 MODEL = "gpt-4"
 MAX_TOKENS = models[MODEL]["max_token"]
 
-SLACK_BOT_TOKEN = os.getenv('SLACK_BOT_TOKEN_CHATAWS')
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY_CHATAWS')
-SLACK_APP_TOKEN = os.getenv('SLACK_APP_TOKEN_CHATAWS')
+SLACK_BOT_TOKEN = os.getenv('SLACK_BOT_TOKEN_WKID_SMAAHT')
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY_WKID_SMAAHT')
+SLACK_APP_TOKEN = os.getenv('SLACK_APP_TOKEN_WKID_SMAAHT')
 if DEBUG:
     print("SLACK_BOT_TOKEN: ", SLACK_BOT_TOKEN)
     print("SLACK_APP_TOKEN: ", SLACK_APP_TOKEN)
@@ -51,7 +51,7 @@ delimiter = "####"
 
 #### EXAMPLE OF GETTING SYSTEM PROMPT FROM DYNAMODB TABLE
 prompt = SystemPrompt(DynamoDBPromptStrategy(table_name='GPTSystemPrompts'))
-SYSTEM_PROMPT = prompt.get_prompt('chataws')
+SYSTEM_PROMPT = prompt.get_prompt('default')
 
 # Cache that tracks Slack threads with system prompts.
 # This will be populated with ChatManager objects and keyed 
