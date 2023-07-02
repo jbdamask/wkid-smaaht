@@ -129,13 +129,13 @@ A production Slack application shouldn't run on your laptop, but it can run in a
     ```
 
     This will:
-        1. Create an Elastic Container Registry repo called "chat-aws-slack", if it doesn't exist
+        1. Create an Elastic Container Registry repo called "wkid-smaaht-slack", if it doesn't exist
         2. Build an image from the dockerfile
         3. Push the image to the ECR repo
     It can take a couple of minutes to run. When finished, note the URI for the repo and save it for later
 
     ```
-    aws ecr describe-repositories --repository-names chat-aws-slack --query 'repositories[0].repositoryUri' --output text
+    aws ecr describe-repositories --repository-names wkid-smaaht-slack --query 'repositories[0].repositoryUri' --output text
     ```
 
 - Write your OpenAI API key and Slack bot and app tokens to AWS Secrets Manager. Use the same values you put into your .env (that file is only used for local testing)
