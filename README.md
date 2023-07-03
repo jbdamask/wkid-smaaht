@@ -10,7 +10,7 @@ Wkid Smaaht Slack brings the power of GPT4 to Slack. It's like having an expert 
 - Serverless: Runs on AWS Fargate. This means it's always on and there's no infrastructure to manage
 - Easy to use: Just type @Wkid Smaaht in Slack
 
-    <img src="images/introducing.png" alt="Allow" width="500"/>
+    <img src="images/wkid-smaaht-hello.png" alt="Allow" width="500"/>
 
 ## Prerequisites
 
@@ -129,7 +129,8 @@ A production Slack application shouldn't run on your laptop, but it can run in a
     ```
 
     This will:
-        1. Create an Elastic Container Registry repo called "wkid-smaaht-slack", if it doesn't exist
+
+        1. Create an Elastic Container Registry repo called "wkid-smaaht-slack"
         2. Build an image from the dockerfile
         3. Push the image to the ECR repo
     It can take a couple of minutes to run. When finished, note the URI for the repo and save it for later
@@ -173,13 +174,9 @@ You're now ready to create an AWS Elastic Container Service that will pull your 
     <img src="images/wkid_smaaht_who_are_u.png" alt="Allow" width="500"/>
 
 
-You can use Wkid Smaaht for anything you'd use ChatGPT for.
+You can use Wkid Smaaht for anything you'd use ChatGPT for:
 
-<img src="images/old-ec2.png" alt="Allow" width="500"/>
-
-Or to check your code
-
-<img src="images/cfn-bug.png" alt="Allow" width="500"/>
+<img src="images/wkid-smaaht-smart-goal-ex1.png" alt="Allow" width="500"/>
 
 
 ## FAQ
@@ -207,18 +204,29 @@ Or to check your code
         - Standard rules of using LLMs apply, namely that you should always review responses for accuracy, completeness and bias.
 
 
-
 ## Advanced
 
-This bot can change! When programming GPT4 you can tell it what you want it to be using something called "System messages". This app stores several System messages in DynamoDB and exposes them to Slack via slash commands. 
+This bot can change! When using GPT4 you can steer how it thinks and responds using something called "System messages". System messages are meant to provide additional context or instructions for the AI model. They can be used to specify certain behaviors or to provide additional context that may not be clear from the user's input alone.
+
+It's important to note that while system messages can provide useful context and direction, they may not always perfectly control the AI's behavior. The AI doesn't understand these instructions in the way a human would, but instead treats them as part of the overall pattern of input it uses to generate a response. It's also worth noting that very specific or complex instructions might be more difficult for the AI to follow accurately.
+
+Wkid Smaaht is a good testing ground for creating and refining System messages to see what works.  This app stores several System messages in DynamoDB and exposes them to Slack via slash commands. 
 
 <img src="images/prompts.png" alt="Allow" width="500"/>
 
-When changed, the personality of the new bot will be specific to your user and channel. 
+When changed, the personality of the new bot will be specific to your user and channel and persist until you change it again. 
 
-<img src="images/chatbadmf.png" alt="Allow" width="500"/>
+<img src="images/problem-coach.png" alt="Allow" width="500"/>
 
 You can add your own system prompts to the DynamoDB table and they'll automatically appear in Slack.
+
+Resources to learn more about "prompt engineering" and system messages.
+
+- [Best practices for prompt engineering with OpenAI API](https://help.openai.com/en/articles/6654000-best-practices-for-prompt-engineering-with-openai-api)
+- [ChatGPT Prompt Engineering for Developers](https://www.deeplearning.ai/short-courses/chatgpt-prompt-engineering-for-developers/)
+
+
+
 
 ## How it's Built
 This project leverages the [Bolt-Python](https://slack.dev/bolt-python/tutorial/getting-started) framework for building Slack applications, and uses code from the [Slack GPT Bot](https://github.com/alex000kim/slack-gpt-bot) project and the deeplearning.ai course, [Building Systems with the ChatGPT API](https://learn.deeplearning.ai/chatgpt-building-system/lesson/1/introduction).
