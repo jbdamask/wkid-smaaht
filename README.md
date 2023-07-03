@@ -10,8 +10,7 @@ Wkid Smaaht Slack brings the power of GPT4 to Slack. It's like having an expert 
 - Serverless: Runs on AWS Fargate. This means it's always on and there's no infrastructure to manage
 - Easy to use: Just type @Wkid Smaaht in Slack
 
-## Examples
-![CLI commands](/images/s3-search.p)
+    <img src="images/introducing.png" alt="Allow" width="500"/>
 
 ## Prerequisites
 
@@ -60,12 +59,11 @@ There are three major components to this application: the code, the AWS environm
         - Choose to create an app **from an app manifest**.
         - Choose a Slack workspace for your app
         - Select YAML and paste the contents of `slack-app-manifest.yml' in the input field. Click *Next*
-    - Click Install to Workspace (or Request to Install if you're not a Slack admin)        
+    - Click Install to Workspace (or Request to Install if you're not a Slack admin)    
+    - To set the Slack App icon, look for the Add App Icon under Basic Information. Upload `images/wkid_smaaht_small.jpg`        
     - Click Allow 
 
         <img src="images/slack-app-install.png" alt="Allow" width="300"/>
-    
-    - To set the Slack App icon, look for the Add App Icon under Basic Information. Upload `images/wkid_smaaht_small.jpg`
 
     - Get Slack App and Bot tokens
         - Under Basic Information, scroll down to App-Level Tokens and click Generate Token and Scopes
@@ -78,6 +76,8 @@ There are three major components to this application: the code, the AWS environm
 
     <img src="images/slack-app-dev.png" alt="Allow" width="400"/>
 - Search for Wkid Smaaht and click Add
+
+    <img src="images/slack-app-invite.png" alt="Allow" width="300"/>
 - Verify you can call it by typing `@Wkid Smaaht`. It won't do anything yet.
 - Verify the app can write to the channel. 
     - Get the Slack channel id for the channel you just invited the bot to (you can find this in Slack by clicking the drop down your channel name and scrolling to the bottom)
@@ -222,6 +222,11 @@ You can add your own system prompts to the DynamoDB table and they'll automatica
 
 ## How it's Built
 This project leverages the [Bolt-Python](https://slack.dev/bolt-python/tutorial/getting-started) framework for building Slack applications, and uses code from the [Slack GPT Bot](https://github.com/alex000kim/slack-gpt-bot) project and the deeplearning.ai course, [Building Systems with the ChatGPT API](https://learn.deeplearning.ai/chatgpt-building-system/lesson/1/introduction).
+
+
+## Examples
+<img src="images/s3-search.png" alt="Allow" width="500"/>
+
 
 ### Architecture
 
