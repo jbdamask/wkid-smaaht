@@ -231,11 +231,6 @@ Resources to learn more about "prompt engineering" and system messages.
 ## How it's Built
 This project leverages the [Bolt-Python](https://slack.dev/bolt-python/tutorial/getting-started) framework for building Slack applications, and uses code from the [Slack GPT Bot](https://github.com/alex000kim/slack-gpt-bot) project and the deeplearning.ai course, [Building Systems with the ChatGPT API](https://learn.deeplearning.ai/chatgpt-building-system/lesson/1/introduction).
 
-
-## Examples
-<img src="images/s3-search.png" alt="Allow" width="500"/>
-
-
 ### Architecture
 
 <img src="images/Wkid%20Smaaht%20Architecture.png" alt="Allow" width="500"/>
