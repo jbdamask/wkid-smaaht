@@ -15,8 +15,8 @@ import tiktoken
 from trafilatura import extract, fetch_url
 from trafilatura.settings import use_config
 from cachetools import LRUCache
-from dotenv import load_dotenv, find_dotenv
-_ = load_dotenv(find_dotenv()) # read local .env file
+# from dotenv import load_dotenv, find_dotenv
+# _ = load_dotenv(find_dotenv()) # read local .env file
 from system_prompt import SystemPrompt, FilePromptStrategy, DynamoDBPromptStrategy, S3PromptStrategy
 from chat_manager import ChatManager
 
