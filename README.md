@@ -182,15 +182,18 @@ You can use Wkid Smaaht for anything you'd use ChatGPT for:
 ## FAQ
 - Does OpenAI use my input? 
     - Per [OpenAI's API Data Usage policy from May 2023](https://openai.com/policies/api-data-usage-policies) OpenAI will not use your conversations to train their models. Still, it's up to you to abide by any constraints or policies set by your organization.
+- Does Slack use my input?
+    - Slack chats are considered Customer Data, which Slack's policies state are [owned by the Customer](https://slack.com/trust/data-management). 
 - Does Wkid Smaaht remember my chats? 
     - Yes. Though this hasn't been thoroughly tested. The code responds in Slack threads and each call to the OpenAI API includes the thread history. Chats from different threads don't appear to bleed into one another.
 - Does it hallucinate?
-    - Yes. But perhaps not as much as regular ChatGPT. This happens mostly with URLs it provides in the response. The model is told to validate all links before providing them to the user but it doesn't always work.
+    - Yes. But since this is GPT4, it's somewhat[better than GPT3](https://openai.com/research/gpt-4)
 - How much can I use it?
     - You can use it until you hit API call limits for [GPT-4](https://platform.openai.com/docs/guides/rate-limits/overview), then you'll have to cool your jets for a while. This could become a real pain if the app is being used by multiple people in your organization (which is likely considering it's a Slack bot).
 - How do I redeploy the Docker image if I want to change something?
-    - Execute the last two lines in `scripts/create_ECR_repo_and_push_container.sh`
-    - Update the Elastic Container Service that runs this code using the AWS Management Console or CLI. 
+    - Re-run `scripts/create_ECR_repo_and_push_container.sh`
+- How can I add a System message?
+    - The easiest way to do this is to create a new text file in the `gpt4_system_prompts` folder and re-run `./scripts/load_system_prompts_into_dbb.sh`. See the Advanced section of this README for more info.
 - Why not just use ChatGPT?
     - You certainly can, but here are a few reasons why you may want to use this:
         - This code uses a "system message" that tells GPT4 to behave as an AWS expert and provides a framework for the model to think through answers. Sometimes, it's responses are better than ChatGPT but not always. Try it for yourself.
@@ -201,6 +204,9 @@ You can use Wkid Smaaht for anything you'd use ChatGPT for:
         - You may hit GPT4 API limits
         - You may need to restart the service using `./scripts/start_ECS_service.sh` if the bot stops responding in Slack
         - This bot hasn't been stress-tested so if you have many users in Slack, things may bonk out.
+        - It can't search the internet
+        - It doesn't handle large inputs well
+        - Most likely, this will be superceded by Slack's own ChatGPT integration.
         - Standard rules of using LLMs apply, namely that you should always review responses for accuracy, completeness and bias.
 
 
