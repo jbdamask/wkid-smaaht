@@ -13,7 +13,7 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 from utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,
                    SLACK_APP_TOKEN, SLACK_BOT_TOKEN, WAIT_MESSAGE,
                    MAX_TOKENS, DEBUG, prompt, 
-                   get_slack_thread, set_prompt_for_user_and_channel,
+                   get_slack_thread, set_prompt_for_user_and_channel, generate_image,
                    num_tokens_from_messages, process_conversation_history,
                    update_chat, moderate_messages, get_completion_from_messages)
 
@@ -69,6 +69,17 @@ def set_prompt(ack, respond, command):
     else:
         respond(f"{command['text']} is not a valid prompt key. Type /prompts to see a list of available system prompts")
 
+@app.command("/generate_image")
+def make_image(ack, respond, command):
+    ack({ "response_type": "in_channel", "text": "Got your request! Generating image..."})
+    if(command['text']) is not None:
+        r = generate_image(command['text'])
+        respond(r)
+    else:
+        respond(f"{command['text']} caused a problem")
+
+
+
 # Listens for app invokation
 @app.event("app_mention")
 def command_handler(body, context):
@@ -94,7 +105,7 @@ def command_handler(body, context):
         thread_ts=thread_ts,
         text=WAIT_MESSAGE
     )
-    reply_message_ts = slack_resp['message']['ts']               
+    reply_message_ts = slack_resp['message']['ts']  
     conversation_history = get_conversation_history(channel_id, thread_ts)
     print("got conversation history")
     messages = process_conversation_history(conversation_history, bot_user_id, channel_id, thread_ts, user_id)
