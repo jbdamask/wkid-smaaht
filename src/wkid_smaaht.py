@@ -7,11 +7,12 @@ import os
 # import openai
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
+import pprint
 
 from utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,
                    SLACK_APP_TOKEN, SLACK_BOT_TOKEN, WAIT_MESSAGE,
                    MAX_TOKENS, DEBUG, prompt, 
-                   get_slack_thread, set_prompt_for_user_and_channel,
+                   get_slack_thread, set_prompt_for_user_and_channel, generate_image,
                    num_tokens_from_messages, process_conversation_history,
                    update_chat, moderate_messages, get_completion_from_messages)
 
@@ -63,6 +64,15 @@ def set_prompt(ack, respond, command):
         respond(f"Ok, from now on I'll be {command['text']}")
     else:
         respond(f"{command['text']} is not a valid prompt key. Type /prompts to see a list of available system prompts")
+
+@app.command("/generate_image")
+def make_image(ack, respond, command):
+    ack({ "response_type": "in_channel", "text": "Got your request! Generating image..."})
+    if(command['text']) is not None:
+        r = generate_image(command['text'])
+        respond(r)
+    else:
+        respond(f"{command['text']} caused a problem")
 
 # Listens for app invokation
 @app.event("app_mention")
