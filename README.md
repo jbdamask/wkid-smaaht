@@ -174,9 +174,13 @@ You're now ready to create an AWS Elastic Container Service that will pull your 
     <img src="images/wkid_smaaht_who_are_u.png" alt="Allow" width="500"/>
 
 
-You can use Wkid Smaaht for anything you'd use ChatGPT for:
+You can use Wkid Smaaht for almost anything you'd use ChatGPT for (there's no web browsing or plugin access, though):
 
 <img src="images/wkid-smaaht-smart-goal-ex1.png" alt="Allow" width="500"/>
+
+You can even use it to create images using OpenAI's DALL E 2:
+
+<img src="images/robot-working-painting-dalle2.png" alt="Allow" width="500">
 
 
 ## FAQ
