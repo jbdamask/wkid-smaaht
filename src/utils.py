@@ -265,3 +265,22 @@ def update_chat(app, channel_id, reply_message_ts, response_text):
         ts=reply_message_ts,
         text=response_text
     )
+
+def generate_image(iPrompt):
+    response = openai.Image.create(prompt=iPrompt, n=1, size="512x512")
+    j = {
+        "response_type": "in_channel",
+        "blocks": [
+            {
+                "type": "image",
+                "title": {
+                    "type": "plain_text",
+                    "text": iPrompt,
+                    "emoji": True
+                },
+                "image_url": response['data'][0]['url'],
+                "alt_text": iPrompt
+            }
+        ]
+    }
+    return j
