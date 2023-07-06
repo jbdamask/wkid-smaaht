@@ -32,9 +32,6 @@ MAX_TOKENS = models[MODEL]["max_token"]
 SLACK_BOT_TOKEN = os.getenv('SLACK_BOT_TOKEN_WKID_SMAAHT')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY_WKID_SMAAHT')
 SLACK_APP_TOKEN = os.getenv('SLACK_APP_TOKEN_WKID_SMAAHT')
-if DEBUG:
-    print("SLACK_BOT_TOKEN: ", SLACK_BOT_TOKEN)
-    print("SLACK_APP_TOKEN: ", SLACK_APP_TOKEN)
 
 openai.api_key = OPENAI_API_KEY
 
@@ -195,21 +192,17 @@ def process_conversation_history(conversation_history, bot_user_id, channel_id, 
     sp = SYSTEM_PROMPT
     cm = cache.get(user_id)
     if cm is not None:
-        if DEBUG:
-            print(f"Found ChatManager object for user {user_id}")        
+        print(f"Found ChatManager object for user {user_id}")        
         channel = cm.get_channel(channel_id)
         if channel is not None:
-            if DEBUG:
-                print(f"Found Channel object for channel {channel_id}")              
+            print(f"Found Channel object for channel {channel_id}")              
             found = False
             for thread, prompt_key in channel.items():  
                 if thread_ts == thread:  
                     found = True
-                    if DEBUG:
-                        print(f"Found object for thread {thread_ts}")         
+                    print(f"Found object for thread {thread_ts}")         
                     # prompt_key is now already the correct value, so no need to index
-                    if DEBUG:
-                        print(f"Found prompt key: {prompt_key}")
+                    print(f"Found prompt key: {prompt_key}")
                     sp = prompt.get_prompt(prompt_key)            
             if not found:
                 sp = cm.prompt_key

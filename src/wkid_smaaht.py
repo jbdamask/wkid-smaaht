@@ -8,6 +8,7 @@ import os
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 import pprint
+from logger_config import get_logger
 
 from utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,
                    SLACK_APP_TOKEN, SLACK_BOT_TOKEN, WAIT_MESSAGE,
@@ -15,6 +16,9 @@ from utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,
                    get_slack_thread, set_prompt_for_user_and_channel, generate_image,
                    num_tokens_from_messages, process_conversation_history,
                    update_chat, moderate_messages, get_completion_from_messages)
+
+# Configure logging
+logger = get_logger(__name__)
 
 # Set the Slack App bot token
 app = App(token=SLACK_BOT_TOKEN)
@@ -26,9 +30,8 @@ def get_conversation_history(channel_id, thread_ts):
         ts=thread_ts,
         inclusive=True
     )
-    if DEBUG:
-        print(type(history))
-        pprint(history)
+    logger.debug(type(history))
+    logger.debug(history)
     return history
 
 # Listens to incoming messages that contain "hello"
@@ -60,8 +63,7 @@ def show_prompt(ack, respond, command):
 @app.command("/set_prompt")
 def set_prompt(ack, respond, command):
     ack()
-    # if DEBUG:
-        # print(f"{command['user_id']} : {command['user_name']}")
+    logger.info(f"{command['user_id']} : {command['user_name']}")
     if(prompt.get_prompt(command['text'])) is not None:
         set_prompt_for_user_and_channel(command['user_id'], command['channel_id'], command['text'])
         respond(f"Ok, from now on I'll be {command['text']}")
@@ -72,6 +74,7 @@ def set_prompt(ack, respond, command):
 def make_image(ack, respond, command):
     ack({ "response_type": "in_channel", "text": "Got your request! Generating image..."})
     if(command['text']) is not None:
+        logger.info(f"{command['user_id']} : {command['user_name']} : command['text']")        
         r = generate_image(command['text'])
         respond(r)
     else:
@@ -85,25 +88,27 @@ def handle_message_events(body, context, logger):
     channel_id = body['event']['channel']
     # If the event is from a DM, process as message
     if channel_id.startswith('D'):
+        # your code to handle the message
+        logger.debug("We got a DM! Process")
         pass
-    # If it's an app_mention, return without doing anything
+    # If it's an app_mention, process the message
     elif f"<@{bot_user_id}>" in body['event']['text']:
+        # your code to handle the mention
+        logger.debug("We got an app mention! Return!")
         return
-    # If it's neither a DM nor an app_mention, return
+    # If it's neither a DM nor an app_mention, return immediately
     else:
         return
-    if DEBUG:
-        print("Processing DM message")
+    logger.debug("Processing DM message")
     process_chat(body, context)
 
 
 # Listens for app mentions and processes (non DM)
 @app.event("app_mention")
 def command_handler(body, context):
-    if DEBUG:
-        pprint(body)
-        # pprint(f"body['event']['text']: {body['event']['text']}")
-        # pprint(f"body['event']['blocks'][0]['type']: {body['event']['blocks'][0]['type']}")
+    logger.debug(body)
+        # logger.debug(f"body['event']['text']: {body['event']['text']}")
+        # logger.debug(f"body['event']['blocks'][0]['type']: {body['event']['blocks'][0]['type']}")
 
     bot_user_id = body.get('authorizations')[0]['user_id'] if 'authorizations' in body else context['bot_user_id']
     channel_id = body['event']['channel']
@@ -127,17 +132,11 @@ def command_handler(body, context):
             return
         command_text = body['event']['text'].split(f"<@{bot_user_id}>")[1].strip()
 
-    process_chat(body, context)
-        
-    if DEBUG:
-        print("DEBUG: end command_handler")
-        
+    process_chat(body, context)        
 
+# Main handler for chats between user and app
 def process_chat(body, context):
-    if DEBUG:
-        pprint(body)
-        # pprint(f"body['event']['text']: {body['event']['text']}")
-        # pprint(f"body['event']['blocks'][0]['type']: {body['event']['blocks'][0]['type']}")
+    logger.info(body)
 
     bot_user_id = body.get('authorizations')[0]['user_id'] if 'authorizations' in body else context['bot_user_id']
     channel_id = body['event']['channel']
@@ -161,14 +160,13 @@ def process_chat(body, context):
             return
         command_text = body['event']['text'].split(f"<@{bot_user_id}>")[1].strip()
 
-    if DEBUG:
-        print("DEBUG: command_handler - new message")
-        print("channel_id: ", channel_id)   
-        print("thread_ts: ", thread_ts)   
-        print("user_id: ", user_id)
-        print("bot_user_id: ", bot_user_id)
-        print("command_text: ", command_text)
-        print("DEBUG: app.client.chat_postMessage")
+    logger.debug("DEBUG: command_handler - new message")
+    logger.debug("channel_id: ", channel_id)   
+    logger.debug("thread_ts: ", thread_ts)   
+    logger.debug("user_id: ", user_id)
+    logger.debug("bot_user_id: ", bot_user_id)
+    logger.debug("command_text: ", command_text)
+    logger.debug("DEBUG: app.client.chat_postMessage")
 
     slack_resp = app.client.chat_postMessage(
         channel=channel_id,
@@ -177,15 +175,14 @@ def process_chat(body, context):
     )
     reply_message_ts = slack_resp['message']['ts']
     conversation_history = get_conversation_history(channel_id, thread_ts)
-    print("got conversation history")
+    logger.debug("got conversation history")
     messages = process_conversation_history(conversation_history, bot_user_id, channel_id, thread_ts, user_id)
     num_tokens = num_tokens_from_messages(messages)
 
     try:
         openai_response = get_completion_from_messages(messages)
 
-        if DEBUG:
-            print("DEBUG: Got response from OpenAI: ", type(openai_response))
+        logger.debug("DEBUG: Got response from OpenAI: ", type(openai_response))
 
         response_text = ""
         ii = 0
@@ -199,17 +196,16 @@ def process_chat(body, context):
             elif chunk.choices[0].finish_reason == 'stop':
                 update_chat(app, channel_id, reply_message_ts, response_text)
     except Exception as e:
-        print(f"Error: {e}")
+        logger.error(f"Error: {e}")
         app.client.chat_postMessage(
             channel=channel_id,
             thread_ts=thread_ts,
             text=f"I can't provide a response. Encountered an error:\n`\n{e}\n`"
         )
         
-    if DEBUG:
-        print("DEBUG: end command_handler")    
+    logger.debug("DEBUG: end command_handler")    
 
 # Start your app
 if __name__ == "__main__":
-    print("Starting app")
+    logger.debug("Starting app")
     SocketModeHandler(app, SLACK_APP_TOKEN).start()
