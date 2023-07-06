@@ -46,15 +46,15 @@ SLACK_APP_TOKEN = os.getenv('SLACK_APP_TOKEN_WKID_SMAAHT')
 openai.api_key = OPENAI_API_KEY
 
 delimiter = "####"
-#### EXAMPLE OF GETTING SYSTEM PROMPT FROM LOCAL FILE
-prompt = SystemPrompt(FilePromptStrategy())
-SYSTEM_PROMPT = prompt.get_prompt('gpt4_system_prompts/default-system-prompt.txt')
+# #### EXAMPLE OF GETTING SYSTEM PROMPT FROM LOCAL FILE
+prompt = SystemPrompt(FilePromptStrategy(file_path='gpt4_system_prompts'))
+SYSTEM_PROMPT = prompt.get_prompt('default-system-prompt.txt')
 
 #### EXAMPLE OF GETTING SYSTEM PROMPT FROM S3
 
 #### EXAMPLE OF GETTING SYSTEM PROMPT FROM DYNAMODB TABLE
 # prompt = SystemPrompt(DynamoDBPromptStrategy(table_name='GPTSystemPrompts'))
-# SYSTEM_PROMPT = prompt.get_prompt('chataws')
+# SYSTEM_PROMPT = prompt.get_prompt('default')
 
 # Cache that tracks Slack threads with system prompts.
 # This will be populated with ChatManager objects and keyed 
@@ -80,31 +80,6 @@ def get_chat_object(user_id, channel_id, thread_ts, prompt_key):
 
 WAIT_MESSAGE = "Got your request. Please wait."
 N_CHUNKS_TO_CONCAT_BEFORE_UPDATING = 20
-# MAX_TOKENS = 8192
-
-
-# When combined with a /set_prompt Slack slash command you enable in the app
-# using the Slack api gui, allows a user to change the system prompt at run time. 
-# TODO Instead of setting this globally, it should be set for the user_id + channel_id.
-# And since we're going to track that, I don't want to store the entire system prompt
-# in the data structure, just the key (which is what's passed in here). But that means
-# I'll want to store a local dict of prompt_keys and system_prompts. I could look it up
-# at run time but that feels like a lot of unnecessary chatter. I also don't want to 
-# populate my prompt data structure at boot-up because prompts may CRUD at runtime.
-# When you think about it, system prompt should be tied to the user and channel AND
-# thread. But what's interesting about this problem is that the thread doesn't exist 
-# when a user sets the prompt. Also, a user+channel combination can have many threads 
-# each with different system prompts (potentially). So my data structure needs to be 
-# able to look up prompts by user+channel+thread (which can be weird if a thread)
-# doesn't exist yet.
-# Maybe my chat manager class contains an internal dictionary of threads and system prompts?
-# def set_system_prompt(system_prompt, user_id, channel_id):
-#     chat = ChatManager(channel_id, user_id, system_prompt)
-#     global SYSTEM_PROMPT
-#     try:
-#         SYSTEM_PROMPT = prompt.get_prompt(system_prompt)
-#     except Exception as e:
-#         SYSTEM_PROMPT = prompt.get_prompt('chataws')
 
 def extract_url_list(text):
     url_pattern = re.compile(
@@ -224,7 +199,6 @@ def num_tokens_from_messages(messages, model="gpt-4"):
 
 # This builds the message object, including any previous interactions in the thread
 def process_conversation_history(conversation_history, bot_user_id, channel_id, thread_ts, user_id):
-    # messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     sp = SYSTEM_PROMPT
     cm = cache.get(user_id)
     if cm is not None:
@@ -244,15 +218,6 @@ def process_conversation_history(conversation_history, bot_user_id, channel_id, 
                     if DEBUG:
                         print(f"Found prompt key: {prompt_key}")
                     sp = prompt.get_prompt(prompt_key)            
-            # for items in channel:
-            #     if thread_ts in items:
-            #         found = True
-            #         if DEBUG:
-            #             print(f"Found object for thread {thread_ts}")         
-            #         prompt_key = items{thread_ts}
-            #         if DEBUG:
-            #             print(f"Found prompt key for thread {thread_ts}")      
-            #         sp = prompt.get_prompt(prompt_key)
             if not found:
                 sp = cm.prompt_key
                 cm.add_thread_to_channel(channel_id, thread_ts, sp)
@@ -263,30 +228,44 @@ def process_conversation_history(conversation_history, bot_user_id, channel_id, 
     for message in conversation_history['messages'][:-1]:
         role = "assistant" if message['user'] == bot_user_id else "user"
         message_text = process_message(message, bot_user_id)
+        if DEBUG:
+            pprint(f"message_text: {message_text}")
         if message_text:
             messages.append({"role": role, "content": message_text})
-    # if DEBUG:
-    #     print("process_conversation_history()")
-    #     pprint(messages)
+    if DEBUG:
+        print("process_conversation_history()")
+        pprint(messages)
     return messages
 
 
 def process_message(message, bot_user_id):
+    if DEBUG:
+        print("process_message(message, bot_user_id)")
+        print(f"message: {message['text']}")
+        print(f"bot_user_id: {bot_user_id}")
+        print(f"user: {message['user']}")
+
     message_text = message['text']
     role = "assistant" if message['user'] == bot_user_id else "user"
     if role == "user":
         url_list = extract_url_list(message_text)
         if url_list:
             message_text = augment_user_message(message_text, url_list)
+    if DEBUG:
+        print(f"role: {role}")
+        pprint(f"augmented user message: {message_text}")
     message_text = clean_message_text(message_text, role, bot_user_id)
+    if DEBUG:
+        pprint(f"cleaned message text: {message_text}")    
     return message_text
 
 
 def clean_message_text(message_text, role, bot_user_id):
     if (f'<@{bot_user_id}>' in message_text) or (role == "assistant"):
         message_text = message_text.replace(f'<@{bot_user_id}>', '').strip()
-        return message_text
-    return None
+        # return message_text
+    return message_text
+    # return None
 
 
 def update_chat(app, channel_id, reply_message_ts, response_text):
