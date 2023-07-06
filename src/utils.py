@@ -255,8 +255,9 @@ def process_message(message, bot_user_id):
 def clean_message_text(message_text, role, bot_user_id):
     if (f'<@{bot_user_id}>' in message_text) or (role == "assistant"):
         message_text = message_text.replace(f'<@{bot_user_id}>', '').strip()
-        return message_text
-    return None
+        # return message_text
+    return message_text
+    # return None
 
 
 def update_chat(app, channel_id, reply_message_ts, response_text):

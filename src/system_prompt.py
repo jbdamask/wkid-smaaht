@@ -12,12 +12,17 @@ class PromptStrategy(abc.ABC):
         pass
 
 class FilePromptStrategy(PromptStrategy):
-    def get_prompt(self, file_path):
-        with open(file_path, 'r') as file:
-            return file.read()
+    def __init__(self, file_path):
+        self.file_path = file_path
+
+    def get_prompt(self, prompt_name):
+        file = os.path.join(self.file_path, prompt_name)
+        with open(file, 'r') as f:
+            return f.read()
         
     def list_prompts(self):
-        return os.listdir()  # assuming prompts are files in the current directory
+        return os.listdir(self.file_path)  # assuming prompts are files in the current directory
+
 
 class DynamoDBPromptStrategy(PromptStrategy):
     def __init__(self, table_name):
