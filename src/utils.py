@@ -15,13 +15,9 @@ import tiktoken
 from trafilatura import extract, fetch_url
 from trafilatura.settings import use_config
 from cachetools import LRUCache
-# from dotenv import load_dotenv, find_dotenv
-# _ = load_dotenv(find_dotenv()) # read local .env file
 from system_prompt import SystemPrompt, FilePromptStrategy, DynamoDBPromptStrategy, S3PromptStrategy
 from chat_manager import ChatManager
 
-# config = configparser.ConfigParser()
-# config.read('settings.ini')
 newconfig = use_config()
 newconfig.set("DEFAULT", "EXTRACTION_TIMEOUT", "0")
 
@@ -47,11 +43,11 @@ delimiter = "####"
 # prompt = SystemPrompt(FilePromptStrategy())
 # SYSTEM_PROMPT = prompt.get_prompt('gpt4_system_prompts/chataws-system-prompt.txt')
 
-#### EXAMPLE OF GETTING SYSTEM PROMPT FROM S3
-
 #### EXAMPLE OF GETTING SYSTEM PROMPT FROM DYNAMODB TABLE
 prompt = SystemPrompt(DynamoDBPromptStrategy(table_name='GPTSystemPrompts'))
 SYSTEM_PROMPT = prompt.get_prompt('default')
+
+#### EXAMPLE OF GETTING SYSTEM PROMPT FROM S3
 
 # Cache that tracks Slack threads with system prompts.
 # This will be populated with ChatManager objects and keyed 
@@ -77,7 +73,6 @@ def get_chat_object(user_id, channel_id, thread_ts, prompt_key):
 
 WAIT_MESSAGE = "Got your request. Please wait."
 N_CHUNKS_TO_CONCAT_BEFORE_UPDATING = 20
-# MAX_TOKENS = 8192
 
 def extract_url_list(text):
     url_pattern = re.compile(
@@ -114,13 +109,12 @@ def moderate_messages(messages):
         print(f"Moderation error: {e}")
         return False
 
+# Handle calls to OpenAI ChatCompletion. Note that we set stream=True so the 
+# user doesn't have to wait until the response has completed.
 def get_completion_from_messages(messages, 
-                                #  model="gpt-3.5-turbo", 
-                                #  model="gpt-4",
                                  temperature=0, 
                                  model=MODEL,
                                  max_tokens=MAX_TOKENS,
-                                #  stream=True
                                  ):
     try:
         response = openai.ChatCompletion.create(
@@ -217,15 +211,6 @@ def process_conversation_history(conversation_history, bot_user_id, channel_id, 
                     if DEBUG:
                         print(f"Found prompt key: {prompt_key}")
                     sp = prompt.get_prompt(prompt_key)            
-            # for items in channel:
-            #     if thread_ts in items:
-            #         found = True
-            #         if DEBUG:
-            #             print(f"Found object for thread {thread_ts}")         
-            #         prompt_key = items{thread_ts}
-            #         if DEBUG:
-            #             print(f"Found prompt key for thread {thread_ts}")      
-            #         sp = prompt.get_prompt(prompt_key)
             if not found:
                 sp = cm.prompt_key
                 cm.add_thread_to_channel(channel_id, thread_ts, sp)
@@ -255,9 +240,7 @@ def process_message(message, bot_user_id):
 def clean_message_text(message_text, role, bot_user_id):
     if (f'<@{bot_user_id}>' in message_text) or (role == "assistant"):
         message_text = message_text.replace(f'<@{bot_user_id}>', '').strip()
-        # return message_text
     return message_text
-    # return None
 
 
 def update_chat(app, channel_id, reply_message_ts, response_text):
