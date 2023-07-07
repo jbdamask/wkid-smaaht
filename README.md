@@ -2,7 +2,7 @@
 
 ## Description
 
-Wkid Smaaht Slack brings the power of GPT4 to Slack. It's like having an expert in any topic available 24/7. Forget about Googling, just ask @Wkid Smaaht!
+Wkid Smaaht Slack brings the power of GPT4 to Slack. It's like having an expert in any topic available 24/7. 
 
 ## Features
 
