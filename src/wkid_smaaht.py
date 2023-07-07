@@ -9,6 +9,7 @@ from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 import pprint
 from logger_config import get_logger
+import json
 
 from utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,
                    SLACK_APP_TOKEN, SLACK_BOT_TOKEN, WAIT_MESSAGE,
@@ -195,6 +196,9 @@ def process_chat(body, context):
                     ii = 0
             elif chunk.choices[0].finish_reason == 'stop':
                 update_chat(app, channel_id, reply_message_ts, response_text)
+        # Wrap response_text in a JSON object
+        response_json = {"response_text": response_text, "chat_history": messages}
+        logger.info(json.dumps(response_json))
     except Exception as e:
         logger.error(f"Error: {e}")
         app.client.chat_postMessage(

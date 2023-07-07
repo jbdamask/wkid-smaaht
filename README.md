@@ -178,6 +178,11 @@ You can use Wkid Smaaht for almost anything you'd use ChatGPT for (there's no we
 
 <img src="images/wkid-smaaht-smart-goal-ex1.png" alt="Allow" width="500"/>
 
+If you have a long Slack thread that you want to summarize, just ask Wkid Smaaht:
+
+<img src="images/summarize-thread.png" alt="Allow" width="500"/>
+
+
 You can even use it to create images using OpenAI's DALL E 2:
 
 <img src="images/robot-working-painting-dalle2.png" alt="Allow" width="500">
