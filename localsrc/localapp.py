@@ -11,6 +11,8 @@ from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from pprint import pprint
 from logger_config import get_logger
+import json
+
 from utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,
                    SLACK_APP_TOKEN, SLACK_BOT_TOKEN, WAIT_MESSAGE,
                    MAX_TOKENS, DEBUG, prompt, 
@@ -21,8 +23,10 @@ from utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,
 # Configure logging
 logger = get_logger(__name__)
 
+# Set the Slack App bot token
 app = App(token=SLACK_BOT_TOKEN)
 
+# Retrieve text from the Slack conversation thread
 def get_conversation_history(channel_id, thread_ts):
     history = app.client.conversations_replies(
         channel=channel_id,
@@ -42,6 +46,7 @@ def message_hello(message, say):
     logger.debug("hello command")
     say(f"Hey there <@{message['user']}>!")
 
+# Slack slash command to return list of all available system prompts
 @app.command("/prompts")
 def list_prompts(ack, respond, command):
     ack()
@@ -49,6 +54,7 @@ def list_prompts(ack, respond, command):
     respond(f"{', '.join(p)}")
     # respond(f"{command['text']}")
 
+# Slack slash command to return message associated with a particular system prompt
 @app.command("/get_prompt")
 def show_prompt(ack, respond, command):
     ack()
@@ -57,6 +63,7 @@ def show_prompt(ack, respond, command):
     except Exception as e:
         respond(f"No such system prompt exsists")
 
+# Slack slash command to change system message. This lets users steer Wkid Smaaht at runtime
 @app.command("/set_prompt")
 def set_prompt(ack, respond, command):
     ack()
@@ -77,8 +84,7 @@ def make_image(ack, respond, command):
     else:
         respond(f"{command['text']} caused a problem")
 
-
-# Process DMs
+# Listens for messages and processes if DM
 @app.event("message")
 def handle_message_events(body, context, logger):
     # logger.info(body)
@@ -101,6 +107,8 @@ def handle_message_events(body, context, logger):
     logger.debug("Processing DM message")
     process_chat(body, context)
 
+
+# Listens for app mentions and processes (non DM)
 @app.event("app_mention")
 def command_handler(body, context, say, logger):
     logger.debug(body)
@@ -127,8 +135,7 @@ def command_handler(body, context, say, logger):
             return
         command_text = body['event']['text'].split(f"<@{bot_user_id}>")[1].strip()
 
-    process_chat(body, context)
-        
+    process_chat(body, context)        
 
 # Main handler for chats between user and app
 def process_chat(body, context):
@@ -191,6 +198,11 @@ def process_chat(body, context):
                     ii = 0
             elif chunk.choices[0].finish_reason == 'stop':
                 update_chat(app, channel_id, reply_message_ts, response_text)
+        # Wrap response_text in a JSON object
+        # response_json = {"response_text": response_text, "chat_history": messages}
+        response_json = {"response_text": response_text}
+        logger.info(json.dumps(response_json))
+        
     except Exception as e:
         logger.error(f"Error: {e}")
         app.client.chat_postMessage(
@@ -203,4 +215,5 @@ def process_chat(body, context):
 
 # Start your app
 if __name__ == "__main__":
+    logger.debug("Starting app")
     SocketModeHandler(app, SLACK_APP_TOKEN).start()

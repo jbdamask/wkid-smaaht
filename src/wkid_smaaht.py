@@ -197,8 +197,10 @@ def process_chat(body, context):
             elif chunk.choices[0].finish_reason == 'stop':
                 update_chat(app, channel_id, reply_message_ts, response_text)
         # Wrap response_text in a JSON object
-        response_json = {"response_text": response_text, "chat_history": messages}
+        # response_json = {"response_text": response_text, "chat_history": messages}
+        response_json = {"response_text": response_text}
         logger.info(json.dumps(response_json))
+        
     except Exception as e:
         logger.error(f"Error: {e}")
         app.client.chat_postMessage(
