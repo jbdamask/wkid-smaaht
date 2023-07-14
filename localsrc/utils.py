@@ -199,6 +199,17 @@ def num_tokens_from_messages(messages, model="gpt-4"):
     num_tokens += 3  # every reply is primed with <|start|>assistant<|message|>
     return num_tokens
 
+# Retrieve text from the Slack conversation thread
+def get_conversation_history(app, channel_id, thread_ts):
+    history = app.client.conversations_replies(
+        channel=channel_id,
+        ts=thread_ts,
+        inclusive=True
+    )
+    logger.debug(type(history))
+    logger.debug(history)
+    return history
+
 # This builds the message object, including any previous interactions in the thread
 def process_conversation_history(conversation_history, bot_user_id, channel_id, thread_ts, user_id):
     sp = SYSTEM_PROMPT
