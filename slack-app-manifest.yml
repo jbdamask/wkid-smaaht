@@ -1,12 +1,12 @@
 display_information:
-  name: Wkid Smaaht
+  name: W'kid Smaaht
   description: GPT4 on Slack!
   background_color: "#000000"
-  long_description: GPT4 application for Slack. Use as-is or specify an expert to use, e.g. AWS expert, helpdesk, HR, bioinformatics, etc. You can invite this application to any channel you like so that Wkid Smaaht is always there!
+  long_description: W'kid Smaaht is like having ChatGPT on Slack, but with a Bostonian twist. You can invite this application to any channel or even have conversations in direct messages. W'kid Smaaht is always there!
 features:
   bot_user:
-    display_name: Wkid Smaaht
-    always_online: false
+    display_name: W'kid Smaaht
+    always_online: true
   slash_commands:
     - command: /prompts
       description: Lists available system prompts
@@ -35,10 +35,11 @@ oauth_config:
       - groups:read
       - im:history
       - im:read
+      - im:write
       - links:read
       - mpim:history
       - mpim:read
-      - im:write
+      - files:read
 settings:
   event_subscriptions:
     bot_events:
