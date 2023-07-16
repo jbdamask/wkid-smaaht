@@ -17,8 +17,13 @@ class FilePromptStrategy(PromptStrategy):
 
     def get_prompt(self, prompt_name):
         file = os.path.join(self.file_path, prompt_name)
-        with open(file, 'r') as f:
-            return f.read()
+        _prompt = None
+        try:
+            with open(file, 'r') as f:
+                _prompt = f.read()
+        except FileNotFoundError:
+            pass
+        return _prompt
         
     def list_prompts(self):
         return os.listdir(self.file_path)  # assuming prompts are files in the current directory
