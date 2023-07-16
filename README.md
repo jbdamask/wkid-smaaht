@@ -33,6 +33,9 @@ Wkid Smaaht Slack brings the power of GPT4 to Slack. It's like having an expert 
 
 - Ability to execute bash shell scripts
 
+- jq
+    - See [this gist](https://gist.github.com/magnetikonline/58eb344e724d878345adc8622f72be13) if installing on an Mac M1 with ARM64 chip
+
 
 ## Installation & Configuration
 
@@ -59,8 +62,14 @@ There are three major components to this application: the code, the AWS environm
         - Choose to create an app **from an app manifest**.
         - Choose a Slack workspace for your app
         - Select YAML and paste the contents of `slack-app-manifest.yml' in the input field. Click *Next*
+        - In order to enable DM's to your app you'll need to check the box under App Home (Note: If Slack tells you that "Sending messages to this app has been turned off" after completing this full installation, restart Slack)
+
+            <img src="images/enable-DM.png" alt="Allow" width="300"/>
+
+        - To set the Slack App icon, look for the Add App Icon under Basic Information. Upload `images/wkid_smaaht_small.jpg`       
+    
     - Click Install to Workspace (or Request to Install if you're not a Slack admin)    
-    - To set the Slack App icon, look for the Add App Icon under Basic Information. Upload `images/wkid_smaaht_small.jpg`        
+ 
     - Click Allow 
 
         <img src="images/slack-app-install.png" alt="Allow" width="300"/>
