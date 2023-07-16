@@ -130,55 +130,6 @@ def extract_command_text(body, context, bot_user_id):
     return command_text
 
 # Where the magic happens
-# def handle_message(body, context, bot_user_id, channel_id, thread_ts, user_id):
-#     logger.debug("DEBUG: command_handler - new message")
-#     logger.debug("channel_id: ", channel_id)   
-#     logger.debug("thread_ts: ", thread_ts)   
-#     logger.debug("user_id: ", user_id)
-#     logger.debug("bot_user_id: ", bot_user_id)
-#     logger.debug("DEBUG: app.client.chat_postMessage")
-
-#     slack_resp = app.client.chat_postMessage(
-#         channel=channel_id,
-#         thread_ts=thread_ts,
-#         text=WAIT_MESSAGE
-#     )
-#     reply_message_ts = slack_resp['message']['ts']
-#     conversation_history = get_conversation_history(app, channel_id, thread_ts)
-#     logger.debug("got conversation history")
-#     messages = process_conversation_history(conversation_history, bot_user_id, channel_id, thread_ts, user_id)
-#     num_tokens = num_tokens_from_messages(messages)
-
-#     try:
-#         openai_response = get_completion_from_messages(messages)
-
-#         logger.debug("DEBUG: Got response from OpenAI: ", type(openai_response))
-
-#         response_text = ""
-#         ii = 0
-#         for chunk in openai_response:
-#             if chunk.choices[0].delta.get('content'):
-#                 ii = ii + 1
-#                 response_text += chunk.choices[0].delta.content
-#                 if ii > N_CHUNKS_TO_CONCAT_BEFORE_UPDATING:
-#                     update_chat(app, channel_id, reply_message_ts, response_text)
-#                     ii = 0
-#             elif chunk.choices[0].finish_reason == 'stop':
-#                 update_chat(app, channel_id, reply_message_ts, response_text)
-#         response_json = {"response_text": response_text}
-#         logger.info(json.dumps(response_json))
-        
-#     except Exception as e:
-#         logger.error(f"Error: {e}")
-#         app.client.chat_postMessage(
-#             channel=channel_id,
-#             thread_ts=thread_ts,
-#             text=f"I can't provide a response. Encountered an error:\n`\n{e}\n`"
-#         )
-        
-#     logger.debug("DEBUG: end command_handler")    
-
-# Where the magic happens
 def process_event(body, context):
     bot_user_id = body.get('authorizations')[0]['user_id'] if 'authorizations' in body else context['bot_user_id']
     channel_id = body['event']['channel']
