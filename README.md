@@ -194,7 +194,7 @@ If you have a long Slack thread that you want to summarize, just ask Wkid Smaaht
 
 You can even use it to create images using OpenAI's DALL E 2:
 
-<img src="images/robot-working-painting-dalle2.png" alt="Allow" width="500">
+<img src="images/chat-and-pix.png" alt="Allow" width="500">
 
 
 ## FAQ

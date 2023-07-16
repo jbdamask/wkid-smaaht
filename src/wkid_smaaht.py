@@ -56,13 +56,13 @@ def set_prompt(ack, respond, command):
 
 @app.command("/generate_image")
 def make_image(ack, respond, command):
-    ack({ "response_type": "in_channel", "text": "Got your request! Generating image..."})
-    if(command['text']) is not None:
-        logger.info(f"{command['user_id']} : {command['user_name']} : {command['text']}")
-        r = generate_image(command['text'])
-        respond(r)
-    else:
-        respond(f"{command['text']} caused a problem")
+    ack({ "response_type": "in_channel", "text": "Command deprecated. Just type :pix <your text> instead"})
+    # if(command['text']) is not None:
+    #     logger.info(f"{command['user_id']} : {command['user_name']} : {command['text']}")
+    #     r = generate_image(command['text'])
+    #     respond(r)
+    # else:
+    #     respond(f"{command['text']} caused a problem")
 
 # Listens to incoming messages that contain "hello"
 # To learn available listener arguments,
@@ -112,8 +112,9 @@ def is_valid_message(body, context, bot_user_id):
     if not channel_id.startswith('D') and f"<@{bot_user_id}>" not in body['event']['text']:
         return False
 
-    if (check_response==WAIT_MESSAGE) or (check_response.startswith("/")) or (check_response.startswith("Got your request!")) or (body['event']['blocks'][0]['type'] == "image"):
-        # return immediately if this was a slash command, auto response or image
+    # if (check_response==WAIT_MESSAGE) or (check_response.startswith("/")) or (check_response.startswith("Got your request!")) or (body['event']['blocks'][0]['type'] == "image"):
+    if (check_response==WAIT_MESSAGE) or (check_response.startswith("/")) or (check_response.startswith("Got your request!")):    
+        # return immediately if this was a slash command, auto response 
         return False
 
     return True
@@ -141,6 +142,42 @@ def process_event(body, context):
 
     command_text = extract_command_text(body, context, bot_user_id)
     if command_text is None:
+        return
+
+    if command_text.startswith(":pix "):
+        image_text = command_text.replace(":pix ", "").strip()
+        if image_text:
+            app.client.chat_postMessage(
+                channel=channel_id,
+                thread_ts=thread_ts,
+                # text=f"Generated image: {response}"
+                text=f"Generating your image...just a sec"
+            )              
+            response = generate_image(image_text)   
+            print(response)                   
+            app.client.chat_postMessage(
+                channel=channel_id,
+                thread_ts=thread_ts,
+                # text=f"{response}"
+                blocks=[
+                    {
+                        "type": "image",
+                        "title": {
+                            "type": "plain_text",
+                            "text": image_text,
+                            "emoji": True
+                        },
+                        "image_url": response['blocks'][0]['image_url'],
+                        "alt_text": image_text
+                    }
+                ]                
+            )
+        else:
+            app.client.chat_postMessage(
+                channel=channel_id,
+                thread_ts=thread_ts,
+                text="No text provided for image generation."
+            )
         return
 
     # handle_message(body, context, bot_user_id, channel_id, thread_ts, user_id)
