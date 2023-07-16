@@ -2,12 +2,11 @@
 # https://learn.deeplearning.ai/chatgpt-building-system 
 # https://github.com/alex000kim/slack-gpt-bot
 
-
 import os
-# import openai
+import openai
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
-import pprint
+from pprint import pprint
 from logger_config import get_logger
 import json
 
@@ -16,32 +15,14 @@ from utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,
                    MAX_TOKENS, DEBUG, prompt, 
                    get_slack_thread, set_prompt_for_user_and_channel, generate_image,
                    num_tokens_from_messages, process_conversation_history,
-                   update_chat, moderate_messages, get_completion_from_messages)
+                   update_chat, moderate_messages, get_completion_from_messages,
+                   get_conversation_history, process_message)  # added imports here
 
 # Configure logging
 logger = get_logger(__name__)
 
 # Set the Slack App bot token
 app = App(token=SLACK_BOT_TOKEN)
-
-# Retrieve text from the Slack conversation thread
-def get_conversation_history(channel_id, thread_ts):
-    history = app.client.conversations_replies(
-        channel=channel_id,
-        ts=thread_ts,
-        inclusive=True
-    )
-    logger.debug(type(history))
-    logger.debug(history)
-    return history
-
-# Listens to incoming messages that contain "hello"
-# To learn available listener arguments,
-# visit https://slack.dev/bolt-python/api-docs/slack_bolt/kwargs_injection/args.html
-@app.message("hello")
-def message_hello(message, say):
-    # say() sends a message to the channel where the event was triggered
-    say(f"Hey there <@{message['user']}>! :wave:")
 
 # Slack slash command to return list of all available system prompts
 @app.command("/prompts")
@@ -81,13 +62,22 @@ def make_image(ack, respond, command):
     else:
         respond(f"{command['text']} caused a problem")
 
+# Listens to incoming messages that contain "hello"
+# To learn available listener arguments,
+# visit https://slack.dev/bolt-python/api-docs/slack_bolt/kwargs_injection/args.html
+@app.message("hello")
+def message_hello(message, say):
+    # say() sends a message to the channel where the event was triggered
+    logger.debug("hello command")
+    say(f"Hey there <@{message['user']}>!")
+
 # Listens for messages and processes if DM
 @app.event("message")
 def handle_message_events(body, context, logger):
     # logger.info(body)
     bot_user_id = body.get('authorizations')[0]['user_id'] if 'authorizations' in body else context['bot_user_id']
     channel_id = body['event']['channel']
-    # If the event is from a DM, process as message
+    # If the event is from a DM, process it as an app_mention
     if channel_id.startswith('D'):
         # your code to handle the message
         logger.debug("We got a DM! Process")
@@ -100,16 +90,15 @@ def handle_message_events(body, context, logger):
     # If it's neither a DM nor an app_mention, return immediately
     else:
         return
+    
     logger.debug("Processing DM message")
     process_chat(body, context)
 
 
 # Listens for app mentions and processes (non DM)
 @app.event("app_mention")
-def command_handler(body, context):
+def command_handler(body, context, say, logger):
     logger.debug(body)
-        # logger.debug(f"body['event']['text']: {body['event']['text']}")
-        # logger.debug(f"body['event']['blocks'][0]['type']: {body['event']['blocks'][0]['type']}")
 
     bot_user_id = body.get('authorizations')[0]['user_id'] if 'authorizations' in body else context['bot_user_id']
     channel_id = body['event']['channel']
@@ -175,7 +164,7 @@ def process_chat(body, context):
         text=WAIT_MESSAGE
     )
     reply_message_ts = slack_resp['message']['ts']
-    conversation_history = get_conversation_history(channel_id, thread_ts)
+    conversation_history = get_conversation_history(app, channel_id, thread_ts)
     logger.debug("got conversation history")
     messages = process_conversation_history(conversation_history, bot_user_id, channel_id, thread_ts, user_id)
     num_tokens = num_tokens_from_messages(messages)

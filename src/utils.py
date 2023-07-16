@@ -15,9 +15,16 @@ import tiktoken
 from trafilatura import extract, fetch_url
 from trafilatura.settings import use_config
 from cachetools import LRUCache
+from logger_config import get_logger
 from system_prompt import SystemPrompt, FilePromptStrategy, DynamoDBPromptStrategy, S3PromptStrategy
 from chat_manager import ChatManager
 
+# Configure logging
+logger = get_logger(__name__)
+
+
+# config = configparser.ConfigParser()
+# config.read('settings.ini')
 newconfig = use_config()
 newconfig.set("DEFAULT", "EXTRACTION_TIMEOUT", "0")
 
@@ -55,11 +62,11 @@ cache = LRUCache(maxsize=100)
 def set_prompt_for_user_and_channel(user_id, channel_id, prompt_key):
     c = cache.get(user_id)
     if c is None:
-        print(f"No record for {user_id}, {channel_id}. Creating one")
+        logger.debug(f"No record for {user_id}, {channel_id}. Creating one")
         cache[user_id] = ChatManager(user_id, channel_id, prompt_key)
     else:
-        print(f"Found record for {user_id}, {channel_id}: ")
-        print(c)
+        logger.debug(f"Found record for {user_id}, {channel_id}: ")
+        logger.debug(c)
         c.prompt_key = prompt_key
 
 def get_slack_thread(thread_ts):
@@ -98,12 +105,12 @@ def moderate_messages(messages):
             )            
             moderation_output = response["results"][0]
             if(moderation_output.flagged):
-                print(f"Moderation output: {moderation_output}")
+                logger.debug(f"Moderation output: {moderation_output}")
                 return False
             else:
                 return 
     except Exception as e:
-        print(f"Moderation error: {e}")
+        logger.debug(f"Moderation error: {e}")
         return False
 
 # Handle calls to OpenAI ChatCompletion. Note that we set stream=True so the 
@@ -123,35 +130,35 @@ def get_completion_from_messages(messages,
         return response
     except openai.error.Timeout as e:
         #Handle timeout error, e.g. retry or log
-        print(f"OpenAI API request timed out: {e}")
+        logger.error(f"OpenAI API request timed out: {e}")
         pass
     except openai.error.APIError as e:
         #Handle API error, e.g. retry or log
-        print(f"OpenAI API returned an API Error: {e}")
+        logger.error(f"OpenAI API returned an API Error: {e}")
         pass
     except openai.error.APIConnectionError as e:
         #Handle connection error, e.g. check network or log
-        print(f"OpenAI API request failed to connect: {e}")
+        logger.error(f"OpenAI API request failed to connect: {e}")
         pass
     except openai.error.InvalidRequestError as e:
         #Handle invalid request error, e.g. validate parameters or log
-        print(f"OpenAI API request was invalid: {e}")
+        logger.error(f"OpenAI API request was invalid: {e}")
         pass
     except openai.error.AuthenticationError as e:
         #Handle authentication error, e.g. check credentials or log
-        print(f"OpenAI API request was not authorized: {e}")
+        logger.error(f"OpenAI API request was not authorized: {e}")
         pass
     except openai.error.PermissionError as e:
         #Handle permission error, e.g. check scope or log
-        print(f"OpenAI API request was not permitted: {e}")
+        logger.error(f"OpenAI API request was not permitted: {e}")
         pass
     except openai.error.RateLimitError as e:
         #Handle rate limit error, e.g. wait or log
-        print(f"OpenAI API request exceeded rate limit: {e}")
+        logger.error(f"OpenAI API request exceeded rate limit: {e}")
         pass
     except Exception as e:
         #Handle other error, e.g. retry or log
-        print(f"OpenAI API request failed: {e}")
+        logger.error(f"OpenAI API request failed: {e}")
         pass
 
 # From https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb
@@ -160,13 +167,13 @@ def num_tokens_from_messages(messages, model="gpt-4"):
     try:
         encoding = tiktoken.encoding_for_model(model)
     except KeyError:
-        print("Warning: model not found. Using cl100k_base encoding.")
+        logger.warning("Warning: model not found. Using cl100k_base encoding.")
         encoding = tiktoken.get_encoding("cl100k_base")
     if model == "gpt-3.5-turbo":
-        print("Warning: gpt-3.5-turbo may change over time. Returning num tokens assuming gpt-3.5-turbo-0301.")
+        logger.info("Warning: gpt-3.5-turbo may change over time. Returning num tokens assuming gpt-3.5-turbo-0301.")
         return num_tokens_from_messages(messages, model="gpt-3.5-turbo-0301")
     elif model == "gpt-4":
-        print("Warning: gpt-4 may change over time. Returning num tokens assuming gpt-4-0314.")
+        logger.info("Warning: gpt-4 may change over time. Returning num tokens assuming gpt-4-0314.")
         return num_tokens_from_messages(messages, model="gpt-4-0314")
     elif model == "gpt-3.5-turbo-0301":
         tokens_per_message = 4  # every message follows <|start|>{role/name}\n{content}<|end|>\n
@@ -186,47 +193,71 @@ def num_tokens_from_messages(messages, model="gpt-4"):
     num_tokens += 3  # every reply is primed with <|start|>assistant<|message|>
     return num_tokens
 
+# Retrieve text from the Slack conversation thread
+def get_conversation_history(app, channel_id, thread_ts):
+    history = app.client.conversations_replies(
+        channel=channel_id,
+        ts=thread_ts,
+        inclusive=True
+    )
+    logger.debug(type(history))
+    logger.debug(history)
+    return history
+
 # This builds the message object, including any previous interactions in the thread
 def process_conversation_history(conversation_history, bot_user_id, channel_id, thread_ts, user_id):
     # messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     sp = SYSTEM_PROMPT
     cm = cache.get(user_id)
     if cm is not None:
-        print(f"Found ChatManager object for user {user_id}")        
+        logger.debug(f"Found ChatManager object for user {user_id}")        
         channel = cm.get_channel(channel_id)
         if channel is not None:
-            print(f"Found Channel object for channel {channel_id}")              
+            logger.debug(f"Found Channel object for channel {channel_id}")              
             found = False
             for thread, prompt_key in channel.items():  
                 if thread_ts == thread:  
                     found = True
-                    print(f"Found object for thread {thread_ts}")         
+                    logger.debug(f"Found object for thread {thread_ts}")         
                     # prompt_key is now already the correct value, so no need to index
-                    print(f"Found prompt key: {prompt_key}")
+                    logger.debug(f"Found prompt key: {prompt_key}")
                     sp = prompt.get_prompt(prompt_key)            
             if not found:
                 sp = cm.prompt_key
                 cm.add_thread_to_channel(channel_id, thread_ts, sp)
     else:
-        print(f"No ChatManager object for user {user_id}")
+        logger.debug(f"No ChatManager object for user {user_id}")
 
     messages = [{"role": "system", "content": sp}]
     for message in conversation_history['messages'][:-1]:
         role = "assistant" if message['user'] == bot_user_id else "user"
         message_text = process_message(message, bot_user_id)
+        logger.debug(f"message_text: {message_text}")
         if message_text:
             messages.append({"role": role, "content": message_text})
+    logger.debug("process_conversation_history()")
+    logger.debug(messages)
     return messages
 
 
 def process_message(message, bot_user_id):
+    logger.debug("process_message(message, bot_user_id)")
+    logger.debug(f"message: {message['text']}")
+    logger.debug(f"bot_user_id: {bot_user_id}")
+    logger.debug(f"user: {message['user']}")
+
     message_text = message['text']
     role = "assistant" if message['user'] == bot_user_id else "user"
     if role == "user":
         url_list = extract_url_list(message_text)
         if url_list:
             message_text = augment_user_message(message_text, url_list)
+
+    logger.debug(f"role: {role}")
+    logger.debug(f"augmented user message: {message_text}")
     message_text = clean_message_text(message_text, role, bot_user_id)
+
+    logger.debug(f"cleaned message text: {message_text}")    
     return message_text
 
 
