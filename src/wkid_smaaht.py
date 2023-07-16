@@ -166,12 +166,56 @@ def handle_message_events(body, context, logger):
         return
     
     logger.debug("Processing DM message")
-    process_chat(body, context)
+    # process_chat(body, context)
+    process_event(body, context)
 
 @app.event("app_mention")
-def command_handler(body, context, say, logger):
+def command_handler(body, context):
     logger.debug(body)
+    process_event(body, context)
 
+# @app.event("app_mention")
+# def command_handler(body, context, say, logger):
+#     logger.debug(body)
+
+#     bot_user_id = body.get('authorizations')[0]['user_id'] if 'authorizations' in body else context['bot_user_id']
+#     channel_id = body['event']['channel']
+#     thread_ts = body['event'].get('thread_ts', body['event']['ts'])
+#     user_id = body['event'].get('user', context.get('user_id'))
+
+#     if not is_valid_message(body, context, bot_user_id):
+#         return
+
+#     command_text = extract_command_text(body, context, bot_user_id)
+#     if command_text is None:
+#         return
+
+#     handle_message(body, context, bot_user_id, channel_id, thread_ts, user_id)
+
+# def process_chat(body, context):
+#     logger.info(body)
+#     process_event(body, context, logger)
+
+# def process_chat(body, context):
+#     logger.info(body)
+
+#     bot_user_id = body.get('authorizations')[0]['user_id'] if 'authorizations' in body else context['bot_user_id']
+#     channel_id = body['event']['channel']
+#     thread_ts = body['event'].get('thread_ts', body['event']['ts'])
+#     user_id = body['event'].get('user', context.get('user_id'))
+
+#     if not is_valid_message(body, context, bot_user_id):
+#         return
+
+#     command_text = extract_command_text(body, context, bot_user_id)
+#     if command_text is None:
+#         return
+
+#     handle_message(body, context, bot_user_id, channel_id, thread_ts, user_id)
+
+
+# def process_event(body, context, logger):
+def process_event(body, context):
     bot_user_id = body.get('authorizations')[0]['user_id'] if 'authorizations' in body else context['bot_user_id']
     channel_id = body['event']['channel']
     thread_ts = body['event'].get('thread_ts', body['event']['ts'])
@@ -186,22 +230,6 @@ def command_handler(body, context, say, logger):
 
     handle_message(body, context, bot_user_id, channel_id, thread_ts, user_id)
 
-def process_chat(body, context):
-    logger.info(body)
-
-    bot_user_id = body.get('authorizations')[0]['user_id'] if 'authorizations' in body else context['bot_user_id']
-    channel_id = body['event']['channel']
-    thread_ts = body['event'].get('thread_ts', body['event']['ts'])
-    user_id = body['event'].get('user', context.get('user_id'))
-
-    if not is_valid_message(body, context, bot_user_id):
-        return
-
-    command_text = extract_command_text(body, context, bot_user_id)
-    if command_text is None:
-        return
-
-    handle_message(body, context, bot_user_id, channel_id, thread_ts, user_id)
 
 # Start your app
 if __name__ == "__main__":
