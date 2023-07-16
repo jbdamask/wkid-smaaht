@@ -58,7 +58,7 @@ def set_prompt(ack, respond, command):
 def make_image(ack, respond, command):
     ack({ "response_type": "in_channel", "text": "Got your request! Generating image..."})
     if(command['text']) is not None:
-        logger.info(f"{command['user_id']} : {command['user_name']} : command['text']")        
+        logger.info(f"{command['user_id']} : {command['user_name']} : {command['text']}")
         r = generate_image(command['text'])
         respond(r)
     else:
@@ -73,6 +73,38 @@ def message_hello(message, say):
     logger.debug("hello command")
     say(f"Hey there <@{message['user']}>!")
 
+# Process DMs
+@app.event("message")
+def handle_message_events(body, context, logger):
+    # logger.info(body)
+    bot_user_id = body.get('authorizations')[0]['user_id'] if 'authorizations' in body else context['bot_user_id']
+    channel_id = body['event']['channel']
+    # If the event is from a DM, process it as an app_mention
+    if channel_id.startswith('D'):
+        # your code to handle the message
+        logger.debug("We got a DM! Process")
+        pass
+    # If it's an app_mention, this will be handled by Slack's @app.event("app_mention") listener. 
+    # Return so we don't process twice
+    elif f"<@{bot_user_id}>" in body['event']['text']:
+        # your code to handle the mention
+        logger.debug("We got an app mention! Return!")
+        return
+    # If it's neither a DM nor an app_mention, return immediately
+    else:
+        return
+    
+    logger.debug("Processing DM message")
+    process_event(body, context)
+
+# Process app mention events
+@app.event("app_mention")
+def command_handler(body, context):
+    logger.debug(body)
+    process_event(body, context)
+
+
+# Check it oot, as my Canadian friends say
 def is_valid_message(body, context, bot_user_id):
     channel_id = body['event']['channel']
     check_response = body['event']['text']
@@ -86,6 +118,7 @@ def is_valid_message(body, context, bot_user_id):
 
     return True
 
+# Where's the beef? Oh, it's here
 def extract_command_text(body, context, bot_user_id):
     if ('channel_type' in body['event']) and (body['event']['channel_type'] == 'im'):
         command_text = body['event']['text']
@@ -96,7 +129,70 @@ def extract_command_text(body, context, bot_user_id):
 
     return command_text
 
-def handle_message(body, context, bot_user_id, channel_id, thread_ts, user_id):
+# Where the magic happens
+# def handle_message(body, context, bot_user_id, channel_id, thread_ts, user_id):
+#     logger.debug("DEBUG: command_handler - new message")
+#     logger.debug("channel_id: ", channel_id)   
+#     logger.debug("thread_ts: ", thread_ts)   
+#     logger.debug("user_id: ", user_id)
+#     logger.debug("bot_user_id: ", bot_user_id)
+#     logger.debug("DEBUG: app.client.chat_postMessage")
+
+#     slack_resp = app.client.chat_postMessage(
+#         channel=channel_id,
+#         thread_ts=thread_ts,
+#         text=WAIT_MESSAGE
+#     )
+#     reply_message_ts = slack_resp['message']['ts']
+#     conversation_history = get_conversation_history(app, channel_id, thread_ts)
+#     logger.debug("got conversation history")
+#     messages = process_conversation_history(conversation_history, bot_user_id, channel_id, thread_ts, user_id)
+#     num_tokens = num_tokens_from_messages(messages)
+
+#     try:
+#         openai_response = get_completion_from_messages(messages)
+
+#         logger.debug("DEBUG: Got response from OpenAI: ", type(openai_response))
+
+#         response_text = ""
+#         ii = 0
+#         for chunk in openai_response:
+#             if chunk.choices[0].delta.get('content'):
+#                 ii = ii + 1
+#                 response_text += chunk.choices[0].delta.content
+#                 if ii > N_CHUNKS_TO_CONCAT_BEFORE_UPDATING:
+#                     update_chat(app, channel_id, reply_message_ts, response_text)
+#                     ii = 0
+#             elif chunk.choices[0].finish_reason == 'stop':
+#                 update_chat(app, channel_id, reply_message_ts, response_text)
+#         response_json = {"response_text": response_text}
+#         logger.info(json.dumps(response_json))
+        
+#     except Exception as e:
+#         logger.error(f"Error: {e}")
+#         app.client.chat_postMessage(
+#             channel=channel_id,
+#             thread_ts=thread_ts,
+#             text=f"I can't provide a response. Encountered an error:\n`\n{e}\n`"
+#         )
+        
+#     logger.debug("DEBUG: end command_handler")    
+
+# Where the magic happens
+def process_event(body, context):
+    bot_user_id = body.get('authorizations')[0]['user_id'] if 'authorizations' in body else context['bot_user_id']
+    channel_id = body['event']['channel']
+    thread_ts = body['event'].get('thread_ts', body['event']['ts'])
+    user_id = body['event'].get('user', context.get('user_id'))
+
+    if not is_valid_message(body, context, bot_user_id):
+        return
+
+    command_text = extract_command_text(body, context, bot_user_id)
+    if command_text is None:
+        return
+
+    # handle_message(body, context, bot_user_id, channel_id, thread_ts, user_id)
     logger.debug("DEBUG: command_handler - new message")
     logger.debug("channel_id: ", channel_id)   
     logger.debug("thread_ts: ", thread_ts)   
@@ -131,8 +227,6 @@ def handle_message(body, context, bot_user_id, channel_id, thread_ts, user_id):
                     ii = 0
             elif chunk.choices[0].finish_reason == 'stop':
                 update_chat(app, channel_id, reply_message_ts, response_text)
-        # Wrap response_text in a JSON object
-        # response_json = {"response_text": response_text, "chat_history": messages}
         response_json = {"response_text": response_text}
         logger.info(json.dumps(response_json))
         
@@ -145,90 +239,6 @@ def handle_message(body, context, bot_user_id, channel_id, thread_ts, user_id):
         )
         
     logger.debug("DEBUG: end command_handler")    
-
-@app.event("message")
-def handle_message_events(body, context, logger):
-    # logger.info(body)
-    bot_user_id = body.get('authorizations')[0]['user_id'] if 'authorizations' in body else context['bot_user_id']
-    channel_id = body['event']['channel']
-    # If the event is from a DM, process it as an app_mention
-    if channel_id.startswith('D'):
-        # your code to handle the message
-        logger.debug("We got a DM! Process")
-        pass
-    # If it's an app_mention, process the message
-    elif f"<@{bot_user_id}>" in body['event']['text']:
-        # your code to handle the mention
-        logger.debug("We got an app mention! Return!")
-        return
-    # If it's neither a DM nor an app_mention, return immediately
-    else:
-        return
-    
-    logger.debug("Processing DM message")
-    # process_chat(body, context)
-    process_event(body, context)
-
-@app.event("app_mention")
-def command_handler(body, context):
-    logger.debug(body)
-    process_event(body, context)
-
-# @app.event("app_mention")
-# def command_handler(body, context, say, logger):
-#     logger.debug(body)
-
-#     bot_user_id = body.get('authorizations')[0]['user_id'] if 'authorizations' in body else context['bot_user_id']
-#     channel_id = body['event']['channel']
-#     thread_ts = body['event'].get('thread_ts', body['event']['ts'])
-#     user_id = body['event'].get('user', context.get('user_id'))
-
-#     if not is_valid_message(body, context, bot_user_id):
-#         return
-
-#     command_text = extract_command_text(body, context, bot_user_id)
-#     if command_text is None:
-#         return
-
-#     handle_message(body, context, bot_user_id, channel_id, thread_ts, user_id)
-
-# def process_chat(body, context):
-#     logger.info(body)
-#     process_event(body, context, logger)
-
-# def process_chat(body, context):
-#     logger.info(body)
-
-#     bot_user_id = body.get('authorizations')[0]['user_id'] if 'authorizations' in body else context['bot_user_id']
-#     channel_id = body['event']['channel']
-#     thread_ts = body['event'].get('thread_ts', body['event']['ts'])
-#     user_id = body['event'].get('user', context.get('user_id'))
-
-#     if not is_valid_message(body, context, bot_user_id):
-#         return
-
-#     command_text = extract_command_text(body, context, bot_user_id)
-#     if command_text is None:
-#         return
-
-#     handle_message(body, context, bot_user_id, channel_id, thread_ts, user_id)
-
-
-# def process_event(body, context, logger):
-def process_event(body, context):
-    bot_user_id = body.get('authorizations')[0]['user_id'] if 'authorizations' in body else context['bot_user_id']
-    channel_id = body['event']['channel']
-    thread_ts = body['event'].get('thread_ts', body['event']['ts'])
-    user_id = body['event'].get('user', context.get('user_id'))
-
-    if not is_valid_message(body, context, bot_user_id):
-        return
-
-    command_text = extract_command_text(body, context, bot_user_id)
-    if command_text is None:
-        return
-
-    handle_message(body, context, bot_user_id, channel_id, thread_ts, user_id)
 
 
 # Start your app
