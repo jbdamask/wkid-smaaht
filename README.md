@@ -1,8 +1,12 @@
-# Wkid Smaaht <img src="images/wkid_smaaht_web.png" alt="Allow" width="100"/>
+# W'kid Smaaht <img src="images/wkid_smaaht_web.png" alt="Allow" width="100"/>
 
 ## Description
 
-Wkid Smaaht Slack brings the power of GPT4 to Slack. It's like having an expert in any topic available 24/7. 
+Wait...what?
+
+"Wicked smart" is a phrase you'll hear a lot around Boston. It's our way of saying someone is extremely intelligent. It's like if Albert Einstein, Tom Brady, Ketanji Brown Jackson and HAL 9000 had a baby, that kid would be "wicked smaaht".
+
+W'kid Smaaht Slack brings the power of GPT4 to Slack. It's like having an expert in any topic available 24/7. 
 
 ## Features
 
