@@ -153,8 +153,16 @@ def process_event(body, context):
                 # text=f"Generated image: {response}"
                 text=f"Generating your image...just a sec"
             )              
-            response = generate_image(image_text)   
-            print(response)                   
+            try:
+                response = generate_image(image_text)   
+            except Exception as e:
+                logger.error(response)
+                app.client.chat_postMessage(
+                    channel=channel_id,
+                    thread_ts=thread_ts,
+                    text=f"Error generating image: {e}"
+                )
+                return
             app.client.chat_postMessage(
                 channel=channel_id,
                 thread_ts=thread_ts,

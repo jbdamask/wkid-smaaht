@@ -196,7 +196,7 @@ You can use Wkid Smaaht for almost anything you'd use ChatGPT for. Almost. There
 
 ### Accelerated comprehension
 
-If you have a long Slack thread that you want to summarize, just ask Wkid Smaaht:
+If you've been part of a long Slack thread that you want to summarize, just ask Wkid Smaaht:
 
 <img src="images/summarize-thread.png" alt="Allow" width="500"/>
 
@@ -204,9 +204,11 @@ Or if the thread is really long, and you're feeling lazy, just say tl;dr.
 
 <img src="images/tldr.png" alt="Allow" width="500"/>
 
-Or let's say you've jumped into a fascinating Slack thread where colleagues are talking about things way our of your comfort zone. You can hit it with something like this:
+(note that this feature may not work on old threads or threads that you haven't actively participated in)
 
-<img src="images/tldr-noob.png" alt="Allow" width="500"/>
+<!-- Or let's say you've jumped into a fascinating Slack thread where colleagues are talking about things way our of your comfort zone. You can hit it with something like this:
+
+<img src="images/tldr-noob.png" alt="Allow" width="500"/> -->
 
 ### Creativity
 
