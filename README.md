@@ -48,7 +48,7 @@ There are three major components to this application: the code, the AWS environm
 *Note these instructions are for a Mac. You may have to tweak if running on Windows or other systems*
 - Download latest release or clone this repo into a local folder with a python virtual environment
     ```
-    git clone https://gitlab.com/flagship-informatics/flagship-digital/aws/Wkid Smaaht-slack.git
+    git clone https://github.com/jbdamask/wkid-smaaht.git
     ```
 
 - Set shell scripts to executable
@@ -187,13 +187,21 @@ You're now ready to create an AWS Elastic Container Service that will pull your 
     <img src="images/wkid_smaaht_who_are_u.png" alt="Allow" width="500"/>
 
 
-You can use Wkid Smaaht for almost anything you'd use ChatGPT for (there's no web browsing or plugin access, though):
+You can use Wkid Smaaht for almost anything you'd use ChatGPT for. Almost. There's no web browsing or plugin access, yet:
 
 <img src="images/wkid-smaaht-smart-goal-ex1.png" alt="Allow" width="500"/>
 
 If you have a long Slack thread that you want to summarize, just ask Wkid Smaaht:
 
 <img src="images/summarize-thread.png" alt="Allow" width="500"/>
+
+Or if the thread is really long, and you're feeling lazy, just say tl;dr.
+
+<img src="images/tldr.png" alt="Allow" width="500"/>
+
+Or let's say you've jumped into a fascinating Slack thread where colleagues are talking about things way our of your comfort zone. You can hit it with something like this:
+
+<img src="images/tldr-noob.png" alt="Allow" width="500"/>
 
 
 You can even use it to create images using OpenAI's DALL E 2:
