@@ -283,9 +283,7 @@ This project leverages the [Bolt-Python](https://slack.dev/bolt-python/tutorial/
 ---
 <!-- CONTRIBUTING -->
 ## Contributing to this project
-Glad to see you want to make this project better! One crucial thing to keep in mind is that parameters are required for the program to execute. Feel free to add any features you think will be helpful but make sure to parameterize them. That is to say, don't change the default behavior of the program.
-
-Direct all discussions around new feature, bugs, etc to the #fsp-innersource Slack channel on the Flagship Network workspace. 
+Glad to see you want to make this project better! One crucial thing to keep in mind is that parameters are required for the program to execute. Feel free to add any features you think will be helpful but make sure to parameterize them. That is to say, don't change the default behavior of the program. 
 
 ### Source code conventions
 Since the development team is small and all members of the project, __code modifications are handled via issues and their related branches__. Please follow these steps if you want to join in.
