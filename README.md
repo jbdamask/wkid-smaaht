@@ -186,10 +186,15 @@ You're now ready to create an AWS Elastic Container Service that will pull your 
 
     <img src="images/wkid_smaaht_who_are_u.png" alt="Allow" width="500"/>
 
+## Uses
 
 You can use Wkid Smaaht for almost anything you'd use ChatGPT for. Almost. There's no web browsing or plugin access, yet:
 
+### Practical
+
 <img src="images/wkid-smaaht-smart-goal-ex1.png" alt="Allow" width="500"/>
+
+### Accelerated comprehension
 
 If you have a long Slack thread that you want to summarize, just ask Wkid Smaaht:
 
@@ -203,11 +208,13 @@ Or let's say you've jumped into a fascinating Slack thread where colleagues are 
 
 <img src="images/tldr-noob.png" alt="Allow" width="500"/>
 
+### Creativity
+
+<img src="images/creative.png" alt="Allow" width="500"/>
 
 You can even use it to create images using OpenAI's DALL E 2:
 
 <img src="images/chat-and-pix.png" alt="Allow" width="500">
-
 
 ## FAQ
 - Does OpenAI use my input? 
