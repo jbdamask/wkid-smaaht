@@ -56,7 +56,7 @@ def set_prompt(ack, respond, command):
 
 @app.command("/generate_image")
 def make_image(ack, respond, command):
-    ack({ "response_type": "in_channel", "text": "Command deprecated. Just type :pix <your text> instead"})
+    ack({ "response_type": "in_channel", "text": "Command deprecated. Just type @W'kid Smaaht :pix <your text> instead"})
     # if(command['text']) is not None:
     #     logger.info(f"{command['user_id']} : {command['user_name']} : {command['text']}")
     #     r = generate_image(command['text'])
