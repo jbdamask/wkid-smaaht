@@ -106,6 +106,10 @@ def command_handler(body, context):
 
 # Check it oot, as my Canadian friends say
 def is_valid_message(body, context, bot_user_id):
+    if not ('channel' in body['event']) or not ('text' in body['event']):
+        logger.error("Unexpected Slack message body")
+        logger.error(body)
+        return False
     channel_id = body['event']['channel']
     check_response = body['event']['text']
 
@@ -203,6 +207,13 @@ def process_event(body, context):
     )
     reply_message_ts = slack_resp['message']['ts']
     conversation_history = get_conversation_history(app, channel_id, thread_ts)
+    if conversation_history is None:
+        slack_resp = app.client.chat_postMessage(
+            channel=channel_id,
+            thread_ts=thread_ts,
+            text="Sorry. Slack had a problem processing this message"
+        )
+        return
     logger.debug("got conversation history")
     messages = process_conversation_history(conversation_history, bot_user_id, channel_id, thread_ts, user_id)
     num_tokens = num_tokens_from_messages(messages)

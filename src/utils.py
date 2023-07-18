@@ -195,11 +195,17 @@ def num_tokens_from_messages(messages, model="gpt-4"):
 
 # Retrieve text from the Slack conversation thread
 def get_conversation_history(app, channel_id, thread_ts):
-    history = app.client.conversations_replies(
-        channel=channel_id,
-        ts=thread_ts,
-        inclusive=True
-    )
+    history = None
+    try:
+        history = app.client.conversations_replies(
+            channel=channel_id,
+            ts=thread_ts,
+            inclusive=True
+        )
+    except Exception as e:
+        logger.error("Slack app.client.conversations_replies exception:")
+        logger.error(e)
+        return history
     logger.debug(type(history))
     logger.debug(history)
     return history
