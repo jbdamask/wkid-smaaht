@@ -77,6 +77,12 @@ def message_hello(message, say):
 @app.event("message")
 def handle_message_events(body, context, logger):
     # logger.info(body)
+    if not is_valid_message_body(body, context):
+        logger.error("Unexpected Slack message body")
+        logger.error(body)
+        # TODO: post something about the error to the Slack user
+        return
+
     bot_user_id = body.get('authorizations')[0]['user_id'] if 'authorizations' in body else context['bot_user_id']
     channel_id = body['event']['channel']
     # If the event is from a DM, process it as an app_mention
@@ -101,23 +107,40 @@ def handle_message_events(body, context, logger):
 @app.event("app_mention")
 def command_handler(body, context):
     logger.debug(body)
-    process_event(body, context)
-
-
-# Check it oot, as my Canadian friends say
-def is_valid_message(body, context, bot_user_id):
-    if not ('channel' in body['event']) or not ('text' in body['event']):
+    if not is_valid_message_body(body, context):
         logger.error("Unexpected Slack message body")
         logger.error(body)
+        # TODO: post something about the error to the Slack user
+        return
+    process_event(body, context)
+
+# Check it oot, as my Canadian friends say
+def is_valid_message_body(body, context):
+    if not ('channel' in body['event']) or not ('text' in body['event']):
         return False
     channel_id = body['event']['channel']
-    check_response = body['event']['text']
+    body_text = body['event']['text']
 
-    if not channel_id.startswith('D') and f"<@{bot_user_id}>" not in body['event']['text']:
-        return False
+    # If DM keep going, otherwise grab bot user id
+    if ('channel_type' in body['event']) and (body['event']['channel_type'] == 'im'):
+        pass
+    else:
+        try:
+            bot_user_id = body.get('authorizations')[0]['user_id'] if 'authorizations' in body else context['bot_user_id']
+            # If we're not a DM and the bot user wasn't called out in the text, something's amiss
+            # It seems like this should never happen but I've seen it
+            if not channel_id.startswith('D'):
+                if f"<@{bot_user_id}>" not in body['event']['text']:
+                    return False
+        except ValueError as ve:
+            logger.error(ve)
+            return False
 
-    # if (check_response==WAIT_MESSAGE) or (check_response.startswith("/")) or (check_response.startswith("Got your request!")) or (body['event']['blocks'][0]['type'] == "image"):
-    if (check_response==WAIT_MESSAGE) or (check_response.startswith("/")) or (check_response.startswith("Got your request!")):    
+    # if not channel_id.startswith('D') and f"<@{bot_user_id}>" not in body['event']['text']:
+    #     return False
+
+    # if (body_text==WAIT_MESSAGE) or (body_text.startswith("/")) or (body_text.startswith("Got your request!")) or (body['event']['blocks'][0]['type'] == "image"):
+    if (body_text==WAIT_MESSAGE) or (body_text.startswith("/")) or (body_text.startswith("Got your request!")):    
         # return immediately if this was a slash command, auto response 
         return False
 
@@ -136,13 +159,18 @@ def extract_command_text(body, context, bot_user_id):
 
 # Where the magic happens
 def process_event(body, context):
+    logger.debug("process_event() body object:)")
+    logger.debug(body)
+    logger.debug("process_event() context object:)")
+    logger.debug(context)
+    # THIS ASSUMES THE BODY HAS A PARTICULAR SCHEMA. SOMETHING SHOULD CHECK FIRST
     bot_user_id = body.get('authorizations')[0]['user_id'] if 'authorizations' in body else context['bot_user_id']
     channel_id = body['event']['channel']
     thread_ts = body['event'].get('thread_ts', body['event']['ts'])
     user_id = body['event'].get('user', context.get('user_id'))
 
-    if not is_valid_message(body, context, bot_user_id):
-        return
+    # if not is_valid_message(body, context, bot_user_id):
+    #     return
 
     command_text = extract_command_text(body, context, bot_user_id)
     if command_text is None:

@@ -77,6 +77,11 @@ def message_hello(message, say):
 @app.event("message")
 def handle_message_events(body, context, logger):
     # logger.info(body)
+    if not is_valid_message_body(body):
+        logger.error("Unexpected Slack message body")
+        logger.error(body)
+        return
+
     bot_user_id = body.get('authorizations')[0]['user_id'] if 'authorizations' in body else context['bot_user_id']
     channel_id = body['event']['channel']
     # If the event is from a DM, process it as an app_mention
@@ -101,23 +106,30 @@ def handle_message_events(body, context, logger):
 @app.event("app_mention")
 def command_handler(body, context):
     logger.debug(body)
+    if not is_valid_message_body(body):
+        logger.error("Unexpected Slack message body")
+        logger.error(body)
+        return
     process_event(body, context)
 
 
 # Check it oot, as my Canadian friends say
-def is_valid_message(body, context, bot_user_id):
+def is_valid_message_body(body, bot_user_id):
     if not ('channel' in body['event']) or not ('text' in body['event']):
-        logger.error("Unexpected Slack message body")
-        logger.error(body)
         return False
     channel_id = body['event']['channel']
-    check_response = body['event']['text']
+    body_text = body['event']['text']
 
-    if not channel_id.startswith('D') and f"<@{bot_user_id}>" not in body['event']['text']:
-        return False
+    # If we're not a DM and the bot user wasn't called out in the text, something's amiss
+    if not channel_id.startswith('D'):
+        if f"<@{bot_user_id}>" not in body['event']['text']:
+            return False
 
-    # if (check_response==WAIT_MESSAGE) or (check_response.startswith("/")) or (check_response.startswith("Got your request!")) or (body['event']['blocks'][0]['type'] == "image"):
-    if (check_response==WAIT_MESSAGE) or (check_response.startswith("/")) or (check_response.startswith("Got your request!")):    
+    # if not channel_id.startswith('D') and f"<@{bot_user_id}>" not in body['event']['text']:
+    #     return False
+
+    # if (body_text==WAIT_MESSAGE) or (body_text.startswith("/")) or (body_text.startswith("Got your request!")) or (body['event']['blocks'][0]['type'] == "image"):
+    if (body_text==WAIT_MESSAGE) or (body_text.startswith("/")) or (body_text.startswith("Got your request!")):    
         # return immediately if this was a slash command, auto response 
         return False
 
@@ -145,8 +157,8 @@ def process_event(body, context):
     thread_ts = body['event'].get('thread_ts', body['event']['ts'])
     user_id = body['event'].get('user', context.get('user_id'))
 
-    if not is_valid_message(body, context, bot_user_id):
-        return
+    # if not is_valid_message(body, context, bot_user_id):
+    #     return
 
     command_text = extract_command_text(body, context, bot_user_id)
     if command_text is None:
