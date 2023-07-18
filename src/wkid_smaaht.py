@@ -136,6 +136,10 @@ def extract_command_text(body, context, bot_user_id):
 
 # Where the magic happens
 def process_event(body, context):
+    logger.debug("process_event() body object:)")
+    logger.debug(body)
+    logger.debug("process_event() context object:)")
+    logger.debug(context)
     bot_user_id = body.get('authorizations')[0]['user_id'] if 'authorizations' in body else context['bot_user_id']
     channel_id = body['event']['channel']
     thread_ts = body['event'].get('thread_ts', body['event']['ts'])
