@@ -66,7 +66,7 @@ def message_hello(message, say):
 # Process direct messages
 @app.event("message")
 def handle_message_events(body, context, logger):
-    logger.debug(body)
+    # logger.debug(body)
     event = body.get('event')
     if event is None:
         logger.error("Expected event object in Slack body")
@@ -94,7 +94,7 @@ def handle_message_events(body, context, logger):
 # Process app mention events
 @app.event("app_mention")
 def command_handler(body, context):
-    logger.debug(body)
+    # logger.debug(body)
     process_event(body, context)
 
 # Where the magic happens
