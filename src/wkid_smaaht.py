@@ -133,6 +133,8 @@ def is_valid_message_body(body, context):
     body_text = event.get('text')
 
     if (channel_id is None) or (body_text is None):
+        logger.error("Invalid message body")
+        logger.error(body)
         return False
 
     # If DM keep going, otherwise grab bot user id
@@ -147,6 +149,8 @@ def is_valid_message_body(body, context):
         if not channel_id.startswith('D'):
             # if f"<@{bot_user_id}>" not in body.get(\'event\')['text']:
             if f"<@{bot_user_id}>" not in event.get('text'):
+                logger.error("Invalid message body")
+                logger.error(body)
                 return False
 
     # if not channel_id.startswith('D') and f"<@{bot_user_id}>" not in body.get(\'event\')['text']:
