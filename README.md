@@ -293,7 +293,7 @@ To contribute, follow (GitHub guidelines)[https://docs.github.com/en/get-started
 When contributing, make sure you run the following user tests:
 1. Chat in DM - Should receive wait message, then response
 2. Chat in DM thread - Should receive wait message, then response
-3. Chat in DM with app mention - Should receive wait message, then response
+3. Chat in DM with App mention - Should receive wait message, then response
 4. Chat in DM thread with App mention - Should receive wait message, then response
 5. Chat in Channel with App mention - Should receive wait message, then response
 6. Chat in Channel thread with App mention - Should receive wait message, then response
@@ -302,5 +302,5 @@ When contributing, make sure you run the following user tests:
 9. Create pic in channel thread - Should receive wait message, then image
 10. Create pic in DM - Should receive wait message, then image
 11. Create pic in DM thread - Should receive wait message, then image
-12. slash command in channel - Should receive info about command
-13. slash comand in DM - Should receive info about command
+12. Slash command in channel - Should receive info about command
+13. Slash comand in DM - Should receive info about command
