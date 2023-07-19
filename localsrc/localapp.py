@@ -76,7 +76,7 @@ def message_hello(message, say):
 # Process DMs
 @app.event("message")
 def handle_message_events(body, context, logger):
-    # logger.info(body)
+    logger.info("message")
     if not is_valid_message_body(body, context):
         logger.error("Unexpected Slack message body")
         logger.error(body)
@@ -110,6 +110,7 @@ def handle_message_events(body, context, logger):
 # Process app mention events
 @app.event("app_mention")
 def command_handler(body, context):
+    logger.info("app_mention")
     logger.debug(body)
     if not is_valid_message_body(body, context):
         logger.error("Unexpected Slack message body")
@@ -149,52 +150,77 @@ def is_valid_message_body(body, context):
             if f"<@{bot_user_id}>" not in event.get('text'):
                 return False
 
-    # if not channel_id.startswith('D') and f"<@{bot_user_id}>" not in body.get(\'event\')['text']:
-    #     return False
-
-    # if (body_text==WAIT_MESSAGE) or (body_text.startswith("/")) or (body_text.startswith("Got your request!")) or (body.get(\'event\')['blocks'][0]['type'] == "image"):
-    if (body_text==WAIT_MESSAGE) or (body_text.startswith("/")) or (body_text.startswith("Got your request!")):    
-        # return immediately if this was a slash command, auto response 
+    if (body_text==WAIT_MESSAGE) or (body_text.startswith("/")):
+        # or (body_text.startswith("Got your request!")):    <- Not sure why I had this. It's nearly a repeat of WAIT_MESSAGE
+        # Return False if this was a slash command, auto response.
+        # This prevents W'kid Smaaht from thinking these
         return False
 
     return True
 
 # Where's the beef? Oh, it's here
-def extract_command_text(body, context, bot_user_id):
+def extract_command_text(event, bot_user_id):
+    # channel_type = event.get('channel_type')
+
+    if f"<@{bot_user_id}" in event.get('text'):
+        command_text = event.get('text').split(f"<@{bot_user_id}>")[1].strip()
+    else:
+        command_text = event.get('text')
+
+    # if channel_type == 'im':
+    #     command_text = event.get('text')
+    # else: # If we're here, it's because we're in a channel thread; thread bodies for channels are different than DMs
+    #     if f"<@{bot_user_id}>" not in event.get('text'):
+    #         return None
+    #     command_text = event.get('text').split(f"<@{bot_user_id}>")[1].strip()
+        # command_text = event.get('text').split(">", 1)[1].strip()
+    return command_text
+
+# Where's the beef? Oh, it's here
+def prepare_payload(body, context):
     event = body.get('event')
     if event is None:
-        return False
-    # if ('channel_type' in body.get('event')) and (body.get('event', {}).get('channel_type') == 'im'):
-    channel_type = event.get('channel_type')
-    if channel_type == 'im':
-        command_text = event.get('text')
-    else:
-        if f"<@{bot_user_id}>" not in event.get('text'):
-            return None
-        command_text = event.get('text').split(f"<@{bot_user_id}>")[1].strip()
+        return None
+    bot_user_id = body.get('authorizations')[0]['user_id'] if 'authorizations' in body else context.get('bot_user_id')
+    channel_id = event.get('channel')
+    thread_ts = event.get('thread_ts', event.get('ts'))
+    user_id = event.get('user', context.get('user_id'))
 
-    return command_text
+    if f"<@{bot_user_id}" in event.get('text'):
+        command_text = event.get('text').split(f"<@{bot_user_id}>")[1].strip()
+    else:
+        command_text = event.get('text')
+    return bot_user_id, channel_id, thread_ts, user_id, command_text
+
 
 # Where the magic happens
 def process_event(body, context):
-    logger.debug("process_event() body object:)")
-    logger.debug(body)
+    logger.info("process_event() body object:)")
+    logger.info(body)
     logger.debug("process_event() context object:)")
     logger.debug(context)
     event = body.get('event')
     if event is None:
         return False
     # THIS ASSUMES THE BODY HAS A PARTICULAR SCHEMA. SOMETHING SHOULD CHECK FIRST
-    bot_user_id = body.get('authorizations')[0]['user_id'] if 'authorizations' in body else context.get('bot_user_id')
-    channel_id = event.get('channel')
-    thread_ts = event.get('thread_ts', event.get('ts'))
-    user_id = event.get('user', context.get('user_id'))
+    # bot_user_id = body.get('authorizations')[0]['user_id'] if 'authorizations' in body else context.get('bot_user_id')
+    # channel_id = event.get('channel')
+    # thread_ts = event.get('thread_ts', event.get('ts'))
+    # user_id = event.get('user', context.get('user_id'))
 
     # if not is_valid_message(body, context, bot_user_id):
     #     return
 
-    command_text = extract_command_text(body, context, bot_user_id)
-    if command_text is None:
+    bot_user_id, channel_id, thread_ts, user_id, command_text = prepare_payload(body, context)
+
+    # command_text = extract_command_text(event, bot_user_id)
+    if command_text == '':
+        app.client.chat_postMessage(
+            channel=channel_id,
+            thread_ts=thread_ts,
+            # text=f"Generated image: {response}"
+            text=f"How can I help you today?"
+        )         
         return
 
     if command_text.startswith(":pix "):
@@ -219,7 +245,7 @@ def process_event(body, context):
             app.client.chat_postMessage(
                 channel=channel_id,
                 thread_ts=thread_ts,
-                # text=f"{response}"
+                text=".", # Used to suppress Slack warnings about not inclding text in the post
                 blocks=[
                     {
                         "type": "image",
