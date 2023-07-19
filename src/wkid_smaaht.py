@@ -85,20 +85,16 @@ def handle_message_events(body, context, logger):
 
     event = body.get('event')
     if event is None:
-        return False
+        return
 
     bot_user_id = body.get('authorizations')[0]['user_id'] if 'authorizations' in body else context.get('bot_user_id')
     channel_id = event.get('channel')
     # If the event is from a DM, process it as an app_mention
     if channel_id.startswith('D'):
-        # your code to handle the message
-        logger.debug("We got a DM! Process")
         pass
     # If it's an app_mention, this will be handled by Slack's @app.event("app_mention") listener. 
     # Return so we don't process twice
     elif f"<@{bot_user_id}>" in event.get('text'):
-        # your code to handle the mention
-        logger.debug("We got an app mention! Return!")
         return
     # If it's neither a DM nor an app_mention, return immediately
     else:
@@ -133,30 +129,21 @@ def is_valid_message_body(body, context):
     body_text = event.get('text')
 
     if (channel_id is None) or (body_text is None):
-        logger.error("Invalid message body")
-        logger.error(body)
         return False
 
     # If DM keep going, otherwise grab bot user id
     if not event.get('channel_type') or event.get('channel_type') != "im":
         pass
-    # if ('channel_type' in body.get(\'event\')) and (body.get(\'event\')['channel_type'] == 'im'):
-    #     pass
     else:
         bot_user_id = body.get('authorizations')[0]['user_id'] if 'authorizations' in body else context.get('bot_user_id')
         # If we're not a DM and the bot user wasn't called out in the text, but we're here, something's amiss
         # It seems like this should never happen but I've seen it
         if not channel_id.startswith('D'):
-            # if f"<@{bot_user_id}>" not in body.get(\'event\')['text']:
             if f"<@{bot_user_id}>" not in event.get('text'):
                 logger.error("Invalid message body")
                 logger.error(body)
                 return False
 
-    # if not channel_id.startswith('D') and f"<@{bot_user_id}>" not in body.get(\'event\')['text']:
-    #     return False
-
-    # if (body_text==WAIT_MESSAGE) or (body_text.startswith("/")) or (body_text.startswith("Got your request!")) or (body.get(\'event\')['blocks'][0]['type'] == "image"):
     if (body_text==WAIT_MESSAGE) or (body_text.startswith("/")) or (body_text.startswith("Got your request!")):    
         # return immediately if this was a slash command, auto response 
         return False
@@ -168,7 +155,6 @@ def extract_command_text(body, context, bot_user_id):
     event = body.get('event')
     if event is None:
         return False
-    # if ('channel_type' in body.get('event')) and (body.get('event', {}).get('channel_type') == 'im'):
     channel_type = event.get('channel_type')
     if channel_type == 'im':
         command_text = event.get('text')
@@ -194,9 +180,6 @@ def process_event(body, context):
     thread_ts = event.get('thread_ts', event.get('ts'))
     user_id = event.get('user', context.get('user_id'))
 
-    # if not is_valid_message(body, context, bot_user_id):
-    #     return
-
     command_text = extract_command_text(body, context, bot_user_id)
     if command_text is None:
         return
@@ -207,7 +190,6 @@ def process_event(body, context):
             app.client.chat_postMessage(
                 channel=channel_id,
                 thread_ts=thread_ts,
-                # text=f"Generated image: {response}"
                 text=f"Generating your image...just a sec"
             )              
             try:
@@ -245,20 +227,11 @@ def process_event(body, context):
             )
         return
 
-    # handle_message(body, context, bot_user_id, channel_id, thread_ts, user_id)
-    logger.debug("DEBUG: command_handler - new message")
-    logger.debug("channel_id: ", channel_id)   
-    logger.debug("thread_ts: ", thread_ts)   
-    logger.debug("user_id: ", user_id)
-    logger.debug("bot_user_id: ", bot_user_id)
-    logger.debug("DEBUG: app.client.chat_postMessage")
-
     slack_resp = app.client.chat_postMessage(
         channel=channel_id,
         thread_ts=thread_ts,
         text=WAIT_MESSAGE
     )
-    # reply_message_ts = slack_resp.get('message')['ts']
     reply_message_ts = slack_resp.get('message', {}).get('ts')
     conversation_history = get_conversation_history(app, channel_id, thread_ts)
     if conversation_history is None:
@@ -298,7 +271,6 @@ def process_event(body, context):
             thread_ts=thread_ts,
             text=f"I can't provide a response. Encountered an error:\n`\n{e}\n`"
         )
-        
     logger.debug("DEBUG: end command_handler")    
 
 
