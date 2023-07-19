@@ -168,7 +168,7 @@ def extract_command_text(body, context, bot_user_id):
 # Where the magic happens
 def process_event(body, context):
     logger.debug("process_event() body object:)")
-    logger.debug(body)
+    logger.info(body)
     logger.debug("process_event() context object:)")
     logger.debug(context)
     event = body.get('event')
@@ -241,15 +241,12 @@ def process_event(body, context):
             text="Sorry. Slack had a problem processing this message"
         )
         return
-    logger.debug("got conversation history")
     messages = process_conversation_history(conversation_history, bot_user_id, channel_id, thread_ts, user_id)
     num_tokens = num_tokens_from_messages(messages)
-
+    # TODO: This is where we can make sure the token limit for our LLM model isn't exceeded
     try:
         openai_response = get_completion_from_messages(messages)
-
         logger.debug("DEBUG: Got response from OpenAI: ", type(openai_response))
-
         response_text = ""
         ii = 0
         for chunk in openai_response:
@@ -263,7 +260,6 @@ def process_event(body, context):
                 update_chat(app, channel_id, reply_message_ts, response_text)
         response_json = {"response_text": response_text}
         logger.info(json.dumps(response_json))
-        
     except Exception as e:
         logger.error(f"Error: {e}")
         app.client.chat_postMessage(
