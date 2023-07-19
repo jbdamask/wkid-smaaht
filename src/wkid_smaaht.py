@@ -17,7 +17,7 @@ from utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,
                    get_slack_thread, set_prompt_for_user_and_channel, generate_image,
                    num_tokens_from_messages, process_conversation_history,
                    update_chat, moderate_messages, get_completion_from_messages,
-                   get_conversation_history, process_message)  # added imports here
+                   prepare_payload, get_conversation_history, process_message)  # added imports here
 
 # Configure logging
 logger = get_logger(__name__)
@@ -25,21 +25,19 @@ logger = get_logger(__name__)
 # Set the Slack App bot token
 app = App(token=SLACK_BOT_TOKEN)
 
-
 # Slack slash command to return list of all available system prompts
 @app.command("/prompts")
-def list_prompts(ack, respond, command):
+def list_prompts(ack, respond):
     ack()
     p = prompt.list_prompts()
     respond(f"{', '.join(p)}")
-    # respond(f"{command['text']}")
 
 # Slack slash command to return message associated with a particular system prompt
 @app.command("/get_prompt")
 def show_prompt(ack, respond, command):
     ack()
     try:
-        respond(f"{prompt.get_prompt(command['text'])}")
+        respond(f"{prompt.get_prompt(command.get('text'))}")
     except Exception as e:
         respond(f"No such system prompt exsists")
 
@@ -47,50 +45,46 @@ def show_prompt(ack, respond, command):
 @app.command("/set_prompt")
 def set_prompt(ack, respond, command):
     ack()
-    logger.info(f"{command['user_id']} : {command['user_name']}")
-    if(prompt.get_prompt(command['text'])) is not None:
-        set_prompt_for_user_and_channel(command['user_id'], command['channel_id'], command['text'])
-        respond(f"Ok, from now on I'll be {command['text']}")
+    logger.info(f"{command.get('user_id')} : {command.get('user_name')}")
+    if(prompt.get_prompt(command.get('text'))) is not None:
+        set_prompt_for_user_and_channel(command.get('user_id'), command.get('channel_id'), command.get('text'))
+        respond(f"Ok, from now on I'll be {command.get('text')}")
     else:
-        respond(f"{command['text']} is not a valid prompt key. Type /prompts to see a list of available system prompts")
+        respond(f"{command.get('text')} is not a valid prompt key. Type /prompts to see a list of available system prompts")
 
 @app.command("/generate_image")
 def make_image(ack, respond, command):
     ack({ "response_type": "in_channel", "text": "Command deprecated. Just type @W'kid Smaaht :pix <your text> instead"})
-    # if(command['text']) is not None:
-    #     logger.info(f"{command['user_id']} : {command['user_name']} : {command['text']}")
-    #     r = generate_image(command['text'])
-    #     respond(r)
-    # else:
-    #     respond(f"{command['text']} caused a problem")
 
 # Listens to incoming messages that contain "hello"
 # To learn available listener arguments,
 # visit https://slack.dev/bolt-python/api-docs/slack_bolt/kwargs_injection/args.html
 @app.message("hello")
 def message_hello(message, say):
-    # say() sends a message to the channel where the event was triggered
-    logger.debug("hello command")
-    say(f"Hey there <@{message['user']}>!")
+    say(f"Hey there <@{message.get('user')}>!")
 
-# Process DMs
+# Process direct messages
 @app.event("message")
 def handle_message_events(body, context, logger):
-    # logger.info(body)
-    bot_user_id = body.get('authorizations')[0]['user_id'] if 'authorizations' in body else context['bot_user_id']
-    channel_id = body['event']['channel']
-    # If the event is from a DM, process it as an app_mention
+    # logger.debug(body)
+    event = body.get('event')
+    if event is None:
+        logger.error("Expected event object in Slack body")
+        logger.info(body)
+        return False
+    bot_user_id = body.get('authorizations')[0]['user_id'] if 'authorizations' in body else context.get('bot_user_id')
+    channel_id = event.get('channel')
+
+    # If the event is from a DM, go ahead and process
     if channel_id.startswith('D'):
-        # your code to handle the message
-        logger.debug("We got a DM! Process")
         pass
+
     # If it's an app_mention, this will be handled by Slack's @app.event("app_mention") listener. 
     # Return so we don't process twice
-    elif f"<@{bot_user_id}>" in body['event']['text']:
-        # your code to handle the mention
-        logger.debug("We got an app mention! Return!")
+    elif f"<@{bot_user_id}>" in event.get('text'):
         return
-    # If it's neither a DM nor an app_mention, return immediately
+    
+    # If it's neither a DM nor an app_mention, then this is none of our business. Return immediately
     else:
         return
     
@@ -100,56 +94,40 @@ def handle_message_events(body, context, logger):
 # Process app mention events
 @app.event("app_mention")
 def command_handler(body, context):
-    logger.debug(body)
+    # logger.debug(body)
     process_event(body, context)
-
-
-# Check it oot, as my Canadian friends say
-def is_valid_message(body, context, bot_user_id):
-    if not ('channel' in body['event']) or not ('text' in body['event']):
-        logger.error("Unexpected Slack message body")
-        logger.error(body)
-        return False
-    channel_id = body['event']['channel']
-    check_response = body['event']['text']
-
-    if not channel_id.startswith('D') and f"<@{bot_user_id}>" not in body['event']['text']:
-        return False
-
-    # if (check_response==WAIT_MESSAGE) or (check_response.startswith("/")) or (check_response.startswith("Got your request!")) or (body['event']['blocks'][0]['type'] == "image"):
-    if (check_response==WAIT_MESSAGE) or (check_response.startswith("/")) or (check_response.startswith("Got your request!")):    
-        # return immediately if this was a slash command, auto response 
-        return False
-
-    return True
-
-# Where's the beef? Oh, it's here
-def extract_command_text(body, context, bot_user_id):
-    if ('channel_type' in body['event']) and (body['event']['channel_type'] == 'im'):
-        command_text = body['event']['text']
-    else:
-        if f"<@{bot_user_id}>" not in body['event']['text']:
-            return None
-        command_text = body['event']['text'].split(f"<@{bot_user_id}>")[1].strip()
-
-    return command_text
 
 # Where the magic happens
 def process_event(body, context):
-    logger.debug("process_event() body object:)")
-    logger.debug(body)
+    logger.info("process_event() body object:)")
+    logger.info(body)
     logger.debug("process_event() context object:)")
     logger.debug(context)
-    bot_user_id = body.get('authorizations')[0]['user_id'] if 'authorizations' in body else context['bot_user_id']
-    channel_id = body['event']['channel']
-    thread_ts = body['event'].get('thread_ts', body['event']['ts'])
-    user_id = body['event'].get('user', context.get('user_id'))
-
-    if not is_valid_message(body, context, bot_user_id):
+    event = body.get('event')
+    if event is None:
+        return False
+    
+    bot_user_id, channel_id, thread_ts, user_id, command_text = prepare_payload(body, context)
+    
+    if any(var is None for var in [bot_user_id, channel_id, thread_ts, user_id, command_text]):
+        logger.error("process_event problem. Check body object")
+        app.client.chat_postMessage(
+            channel=channel_id,
+            thread_ts=thread_ts,
+            text=f"Something went wrong."
+        )
+        return
+    
+    if (command_text==WAIT_MESSAGE) or (command_text.startswith("/")):
+        # No processing needed if the message was generated by this bot or is a Slack slash command
         return
 
-    command_text = extract_command_text(body, context, bot_user_id)
-    if command_text is None:
+    if command_text == '':
+        app.client.chat_postMessage(
+            channel=channel_id,
+            thread_ts=thread_ts,
+            text=f"How can I help you today?"
+        )         
         return
 
     if command_text.startswith(":pix "):
@@ -158,7 +136,6 @@ def process_event(body, context):
             app.client.chat_postMessage(
                 channel=channel_id,
                 thread_ts=thread_ts,
-                # text=f"Generated image: {response}"
                 text=f"Generating your image...just a sec"
             )              
             try:
@@ -174,7 +151,7 @@ def process_event(body, context):
             app.client.chat_postMessage(
                 channel=channel_id,
                 thread_ts=thread_ts,
-                # text=f"{response}"
+                text=".", # Used to suppress Slack warnings about not including text in the post
                 blocks=[
                     {
                         "type": "image",
@@ -196,20 +173,13 @@ def process_event(body, context):
             )
         return
 
-    # handle_message(body, context, bot_user_id, channel_id, thread_ts, user_id)
-    logger.debug("DEBUG: command_handler - new message")
-    logger.debug("channel_id: ", channel_id)   
-    logger.debug("thread_ts: ", thread_ts)   
-    logger.debug("user_id: ", user_id)
-    logger.debug("bot_user_id: ", bot_user_id)
-    logger.debug("DEBUG: app.client.chat_postMessage")
-
     slack_resp = app.client.chat_postMessage(
         channel=channel_id,
         thread_ts=thread_ts,
         text=WAIT_MESSAGE
     )
-    reply_message_ts = slack_resp['message']['ts']
+
+    reply_message_ts = slack_resp.get('message', {}).get('ts')
     conversation_history = get_conversation_history(app, channel_id, thread_ts)
     if conversation_history is None:
         slack_resp = app.client.chat_postMessage(
@@ -218,7 +188,7 @@ def process_event(body, context):
             text="Sorry. Slack had a problem processing this message"
         )
         return
-    logger.debug("got conversation history")
+    
     messages = process_conversation_history(conversation_history, bot_user_id, channel_id, thread_ts, user_id)
     num_tokens = num_tokens_from_messages(messages)
 
@@ -250,7 +220,6 @@ def process_event(body, context):
         )
         
     logger.debug("DEBUG: end command_handler")    
-
 
 # Start your app
 if __name__ == "__main__":

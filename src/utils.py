@@ -1,3 +1,7 @@
+# utils.py
+# Includes various functions and plumbing code.
+# Not meant for re-use, but having this file makes it easier to read main application code
+
 import os
 import re
 import boto3
@@ -113,8 +117,24 @@ def moderate_messages(messages):
         logger.debug(f"Moderation error: {e}")
         return False
 
-# Handle calls to OpenAI ChatCompletion. Note that we set stream=True so the 
-# user doesn't have to wait until the response has completed.
+# Where's the beef? Oh, it's here
+def prepare_payload(body, context):
+    event = body.get('event')
+    if event is None:
+        return None
+    bot_user_id = body.get('authorizations')[0]['user_id'] if 'authorizations' in body else context.get('bot_user_id')
+    channel_id = event.get('channel')
+    thread_ts = event.get('thread_ts', event.get('ts'))
+    user_id = event.get('user', context.get('user_id'))
+
+    if f"<@{bot_user_id}" in event.get('text'):
+        command_text = event.get('text').split(f"<@{bot_user_id}>")[1].strip()
+    else:
+        command_text = event.get('text')
+
+    return bot_user_id, channel_id, thread_ts, user_id, command_text
+
+
 def get_completion_from_messages(messages, 
                                  temperature=0, 
                                  model=MODEL,
@@ -170,10 +190,10 @@ def num_tokens_from_messages(messages, model="gpt-4"):
         logger.warning("Warning: model not found. Using cl100k_base encoding.")
         encoding = tiktoken.get_encoding("cl100k_base")
     if model == "gpt-3.5-turbo":
-        logger.info("Warning: gpt-3.5-turbo may change over time. Returning num tokens assuming gpt-3.5-turbo-0301.")
+        logger.debug("Warning: gpt-3.5-turbo may change over time. Returning num tokens assuming gpt-3.5-turbo-0301.")
         return num_tokens_from_messages(messages, model="gpt-3.5-turbo-0301")
     elif model == "gpt-4":
-        logger.info("Warning: gpt-4 may change over time. Returning num tokens assuming gpt-4-0314.")
+        logger.debug("Warning: gpt-4 may change over time. Returning num tokens assuming gpt-4-0314.")
         return num_tokens_from_messages(messages, model="gpt-4-0314")
     elif model == "gpt-3.5-turbo-0301":
         tokens_per_message = 4  # every message follows <|start|>{role/name}\n{content}<|end|>\n
@@ -195,24 +215,17 @@ def num_tokens_from_messages(messages, model="gpt-4"):
 
 # Retrieve text from the Slack conversation thread
 def get_conversation_history(app, channel_id, thread_ts):
-    history = None
-    try:
-        history = app.client.conversations_replies(
-            channel=channel_id,
-            ts=thread_ts,
-            inclusive=True
-        )
-    except Exception as e:
-        logger.error("Slack app.client.conversations_replies exception:")
-        logger.error(e)
-        return history
+    history = app.client.conversations_replies(
+        channel=channel_id,
+        ts=thread_ts,
+        inclusive=True
+    )
     logger.debug(type(history))
     logger.debug(history)
     return history
 
 # This builds the message object, including any previous interactions in the thread
 def process_conversation_history(conversation_history, bot_user_id, channel_id, thread_ts, user_id):
-    # messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     sp = SYSTEM_PROMPT
     cm = cache.get(user_id)
     if cm is not None:

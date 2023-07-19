@@ -21,7 +21,9 @@ class FilePromptStrategy(PromptStrategy):
         try:
             with open(file, 'r') as f:
                 _prompt = f.read()
-        except FileNotFoundError:
+        # except FileNotFoundError:
+        except Exception:
+            # Whatever the reason, if an exception is thrown we'll just return None
             pass
         return _prompt
         
