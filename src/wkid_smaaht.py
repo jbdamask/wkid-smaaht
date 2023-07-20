@@ -81,7 +81,8 @@ def handle_message_events(body, context, logger):
 
     # If it's an app_mention, this will be handled by Slack's @app.event("app_mention") listener. 
     # Return so we don't process twice
-    elif f"<@{bot_user_id}>" in event.get('text'):
+    # elif f"<@{bot_user_id}>" in event.get('text'):
+    elif 'text' in event and f"<@{bot_user_id}>" in event.get('text'):
         return
     
     # If it's neither a DM nor an app_mention, then this is none of our business. Return immediately
