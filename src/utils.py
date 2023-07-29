@@ -82,12 +82,19 @@ def get_chat_object(user_id, channel_id, thread_ts, prompt_key):
 WAIT_MESSAGE = "Got your request. Please wait."
 N_CHUNKS_TO_CONCAT_BEFORE_UPDATING = 20
 
+# def extract_url_list(text):
+#     url_pattern = re.compile(
+#         r'<(http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+)>'
+#     )
+#     url_list = url_pattern.findall(text)
+#     return url_list if len(url_list)>0 else None
+
 def extract_url_list(text):
     url_pattern = re.compile(
-        r'<(http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+)>'
+        r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
     )
     url_list = url_pattern.findall(text)
-    return url_list if len(url_list)>0 else None
+    return url_list if len(url_list) > 0 else None
 
 def augment_user_message(user_message, url_list):
     all_url_content = ''
