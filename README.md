@@ -204,7 +204,7 @@ Or if the thread is really long, and you're feeling lazy, just say tl;dr.
 
 <img src="images/tldr.png" alt="Allow" width="500"/>
 
-Or let's say you've jumped into a fascinating Slack thread where colleagues are talking about things way our of your comfort zone. You can hit it with something like this:
+Or let's say you've jumped into a fascinating Slack thread where colleagues are talking about things out of your comfort zone. You can hit it with something like this:
 
 <img src="images/tldr-noob.png" alt="Allow" width="500"/>
 
