@@ -204,11 +204,14 @@ Or if the thread is really long, and you're feeling lazy, just say tl;dr.
 
 <img src="images/tldr.png" alt="Allow" width="500"/>
 
-(note that this feature may not work on old threads or threads that W'kid Smaaht hasn't participated in)
+Or let's say you've jumped into a fascinating Slack thread where colleagues are talking about things way our of your comfort zone. You can hit it with something like this:
 
-<!-- Or let's say you've jumped into a fascinating Slack thread where colleagues are talking about things way our of your comfort zone. You can hit it with something like this:
+<img src="images/tldr-noob.png" alt="Allow" width="500"/>
 
-<img src="images/tldr-noob.png" alt="Allow" width="500"/> -->
+### Code help
+Sometimes you just want an expert at your fingertips. You can DM W'kid Smaaht just like any other Slack user and get immediate help
+
+<img src="images/regex-help.png" alt="Allow" width="500">
 
 ### Creativity
 
