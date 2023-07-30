@@ -231,7 +231,7 @@ You can even use it to create images using OpenAI's DALL E 2:
 - Can my team have different chats going on simultaneously?
     - Yep. Chats from different threads don't bleed into one another.
 - Does it hallucinate?
-    - Yes. But since this is GPT4, it's somewhat[better than GPT3](https://openai.com/research/gpt-4)
+    - Yes. But since this is GPT4, it's somewhat [better than GPT3](https://openai.com/research/gpt-4)
 - How much can I use it?
     - You can use it until you hit API call limits for [GPT-4](https://platform.openai.com/docs/guides/rate-limits/overview), then you'll have to cool your jets for a while. This could become a real pain if the app is being used by multiple people in your organization (which is likely considering it's a Slack bot).
 - How do I redeploy the Docker image if I want to change something?
