@@ -226,8 +226,10 @@ You can even use it to create images using OpenAI's DALL E 2:
     - Per [OpenAI's API Data Usage policy from May 2023](https://openai.com/policies/api-data-usage-policies) OpenAI will not use your conversations to train their models. Still, it's up to you to abide by any constraints or policies set by your organization.
 - Does Slack use my input?
     - Slack chats are considered Customer Data, which Slack's policies state are [owned by the Customer](https://slack.com/trust/data-management). 
-- Does Wkid Smaaht remember my chats? 
-    - Yes. Though this hasn't been thoroughly tested. The code responds in Slack threads and each call to the OpenAI API includes the thread history. Chats from different threads don't appear to bleed into one another.
+- Does W'kid Smaaht remember my chats? 
+    - By default, W'kid Smaaht logs chats into AWS CloudTrail but this can be turned off in the code.
+- Can my team have different chats going on simultaneously?
+    - Yep. Chats from different threads don't bleed into one another.
 - Does it hallucinate?
     - Yes. But since this is GPT4, it's somewhat[better than GPT3](https://openai.com/research/gpt-4)
 - How much can I use it?
