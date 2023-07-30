@@ -239,10 +239,11 @@ You can even use it to create images using OpenAI's DALL E 2:
 - How can I add a System message?
     - The easiest way to do this is to create a new text file in the `gpt4_system_prompts` folder and re-run `./scripts/load_system_prompts_into_dbb.sh`. See the Advanced section of this README for more info.
 - Why not just use ChatGPT?
-    - You certainly can, but here are a few reasons why you may want to use this:
-        - This code uses a "system message" that tells GPT4 to behave as an AWS expert and provides a framework for the model to think through answers. Sometimes, it's responses are better than ChatGPT but not always. Try it for yourself.
-        - Sometimes you just want to access ChatGPT without logging into their website. @Wkid Smaaht is always listening.
-        - Everyone on a Slack channel where @Wkid Smaaht is installed can see the chats. This can be helpful if you're sharing information between team members.
+    - You certainly can, I do. But here are a few reasons why you may want to use W'kid Smaaht:
+        - If you spend much of your day in Slack, it's helpful to have GPT in the same tool. 
+        - Maybe not everyone on your team or company has subscribed to ChatGPT Plus. W'kid Smaaht gives them direct access to GPT4.
+        - Sharing chats in ChatGPT is cumbersome but it's natural in Slack. 
+        - Since OpenAI doesn't train their models on chats via API, W'kid Smaaht can be a better option when dealing with sensitive topics.
 - Is there anything not to love?
     - Yep. A bunch of stuff starting with:
         - You may hit GPT4 API limits
