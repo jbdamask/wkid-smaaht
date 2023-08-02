@@ -289,12 +289,9 @@ This project leverages the [Bolt-Python](https://slack.dev/bolt-python/tutorial/
 ---
 <!-- CONTRIBUTING -->
 ## Contributing to this project
-Glad to see you want to make this project better! One crucial thing to keep in mind is that parameters are required for the program to execute. Feel free to add any features you think will be helpful but make sure to parameterize them. That is to say, don't change the default behavior of the program. 
+Glad to see you want to make this project better! 
 
-### Source code conventions
-Since the development team is small and all members of the project, __code modifications are handled via issues and their related branches__. Please follow these steps if you want to join in.
-
-To contribute, follow (GitHub guidelines)[https://docs.github.com/en/get-started/quickstart/contributing-to-projects]
+Please follow (GitHub guidelines)[https://docs.github.com/en/get-started/quickstart/contributing-to-projects]. 
 
 When contributing, make sure you run the following user tests:
 1. Chat in DM - Should receive wait message, then response
