@@ -24,6 +24,12 @@ _ = load_dotenv(find_dotenv()) # read local .env file
 from logger_config import get_logger
 from system_prompt import SystemPrompt, FilePromptStrategy, DynamoDBPromptStrategy, S3PromptStrategy
 from chat_manager import ChatManager
+from langchain.tools import DuckDuckGoSearchRun
+from langchain.agents import ConversationalChatAgent, AgentExecutor
+from langchain.chat_models import ChatOpenAI
+from langchain.memory import ConversationBufferMemory
+from langchain.callbacks import StdOutCallbackHandler
+from langchain.memory.chat_message_histories import ChatMessageHistory
 
 # Configure logging
 logger = get_logger(__name__)
@@ -325,3 +331,23 @@ def generate_image(iPrompt):
         ]
     }
     return j
+
+def search_and_chat(message):
+    msgs = ChatMessageHistory()
+    memory = ConversationBufferMemory(
+        chat_memory=msgs, return_messages=True, memory_key="chat_history", output_key="output"
+    )
+    llm = ChatOpenAI(model_name=MODEL, openai_api_key=OPENAI_API_KEY, streaming=True)
+    tools = [DuckDuckGoSearchRun(name="Search")]
+    chat_agent = ConversationalChatAgent.from_llm_and_tools(llm=llm, tools=tools)
+    executor = AgentExecutor.from_agent_and_tools(
+        agent=chat_agent,
+        tools=tools,
+        memory=memory,
+        return_intermediate_steps=True,
+        handle_parsing_errors=True,
+    )    
+
+    st_cb = StdOutCallbackHandler()
+    response = executor(message, callbacks=[st_cb])
+    return response["output"]
