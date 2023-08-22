@@ -22,6 +22,12 @@ from cachetools import LRUCache
 from logger_config import get_logger
 from system_prompt import SystemPrompt, FilePromptStrategy, DynamoDBPromptStrategy, S3PromptStrategy
 from chat_manager import ChatManager
+from langchain.tools import DuckDuckGoSearchRun
+from langchain.agents import ConversationalChatAgent, AgentExecutor
+from langchain.chat_models import ChatOpenAI
+from langchain.memory import ConversationBufferMemory
+from langchain.callbacks import StdOutCallbackHandler
+from langchain.memory.chat_message_histories import ChatMessageHistory
 
 # Configure logging
 logger = get_logger(__name__)
@@ -96,6 +102,7 @@ def extract_url_list(text):
     url_list = url_pattern.findall(text)
     return url_list if len(url_list) > 0 else None
 
+
 def augment_user_message(user_message, url_list):
     all_url_content = ''
     for url in url_list:
@@ -136,6 +143,8 @@ def prepare_payload(body, context):
 
     if f"<@{bot_user_id}" in event.get('text'):
         command_text = event.get('text').split(f"<@{bot_user_id}>")[1].strip()
+    # elif ":snc" in event.get('text'):
+    #     command_text = event.get('text').replace(":snc ", "").strip()
     else:
         command_text = event.get('text')
 
@@ -261,8 +270,7 @@ def process_conversation_history(conversation_history, bot_user_id, channel_id, 
         logger.debug(f"message_text: {message_text}")
         if message_text:
             messages.append({"role": role, "content": message_text})
-    logger.debug("process_conversation_history()")
-    logger.debug(messages)
+    logger.info(messages)
     return messages
 
 
@@ -290,15 +298,18 @@ def process_message(message, bot_user_id):
 def clean_message_text(message_text, role, bot_user_id):
     if (f'<@{bot_user_id}>' in message_text) or (role == "assistant"):
         message_text = message_text.replace(f'<@{bot_user_id}>', '').strip()
+        # return message_text
     return message_text
+    # return None
 
 
 def update_chat(app, channel_id, reply_message_ts, response_text):
-    app.client.chat_update(
+    r = app.client.chat_update(
         channel=channel_id,
         ts=reply_message_ts,
         text=response_text
     )
+    print(r)
 
 def generate_image(iPrompt):
     response = openai.Image.create(prompt=iPrompt, n=1, size="512x512")
@@ -318,3 +329,48 @@ def generate_image(iPrompt):
         ]
     }
     return j
+
+# We're not using long-term langchain memory in this app.
+# Instead, we let Slack track history, grab it from whatever
+# thread is in scope, and copy it to LangChain history if
+# we need it.
+# Note that the role definitions are from OpenAI and
+# may not translate to other models
+def copy_history_to_langchain(message):
+    msgs = ChatMessageHistory()
+    for m in message:
+        if m.get('role') == 'system':
+            pass
+        elif m.get('role') == 'user':
+            msgs.add_user_message(m.get('content'))
+        elif m.get('role') == 'assistant':
+            msgs.add_ai_message(m.get('content'))
+
+    return msgs
+
+
+def search_and_chat(messages, text):
+    # msgs = ChatMessageHistory()
+    # Build LangChain memory from Slack chat history
+    msgs = copy_history_to_langchain(messages)
+    # I don't think i need this next line because the text message is already in the history
+    # msgs.add_user_message(text)
+    memory = ConversationBufferMemory(
+        chat_memory=msgs, return_messages=True, memory_key="chat_history", output_key="output"        
+    )
+    logger.info("uh....no?")
+    logger.info(memory.json)
+    llm = ChatOpenAI(model_name=MODEL, openai_api_key=OPENAI_API_KEY, streaming=True)
+    tools = [DuckDuckGoSearchRun(name="Search")]
+    chat_agent = ConversationalChatAgent.from_llm_and_tools(llm=llm, tools=tools)
+    executor = AgentExecutor.from_agent_and_tools(
+        agent=chat_agent,
+        tools=tools,
+        memory=memory,
+        return_intermediate_steps=True,
+        handle_parsing_errors=True,
+    )    
+
+    st_cb = StdOutCallbackHandler()
+    response = executor(text, callbacks=[st_cb])
+    return response["output"]
