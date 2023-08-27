@@ -30,6 +30,8 @@ from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.callbacks import StdOutCallbackHandler
 from langchain.memory.chat_message_histories import ChatMessageHistory
+from langchain.prompts import ChatPromptTemplate
+from langchain.prompts.chat import SystemMessagePromptTemplate, HumanMessagePromptTemplate
 
 # Configure logging
 logger = get_logger(__name__)
@@ -378,3 +380,58 @@ def search_and_chat(messages, text):
     st_cb = StdOutCallbackHandler()
     response = executor(text, callbacks=[st_cb])
     return response["output"]
+
+def fsp_employee_search(messages, text):
+    import requests
+
+    # You find these values in Flowise under your chatflow's API Endpoint
+    API_URL = "<Render flowise endpoint>"
+    headers = {"Authorization": "Bearer <Render authorization>"}
+    
+    payload = {"question": text,}
+    response = requests.post(API_URL, 
+                                headers=headers, 
+                                json=payload)
+
+    r = response.json()
+    rt = r.get('text')
+    sd = [doc['metadata']['source'] for doc in r['sourceDocuments']]
+    # remove duplicates
+    sd = list(set(sd))
+    sl = []
+    for s in sd:
+        s1 = (s.split("/")[-1].split('.')[0])
+        sl.append(f"https://flagshippioneering.com/people/{s1}")
+
+    system_template = """You take a string and a python list of URLs \
+    and do your best to attach the URLs as hyperlinks to their \
+    proper locations in the string. The string return is the same as the text \
+    string that was provided to you, but with hyperlinks inserted into the right places. \
+    The string you return must have its hyperlinks formatted according to \
+    Slack convention.
+    
+    Example:
+    <https://flagshippioneering.com/people/drew-dresser|Drew> and <https://flagshippioneering.com/people/sean-murphy|Sean> have experience with proteomics
+    """
+
+    # create a prompt template for a System role
+    system_message_prompt_template = SystemMessagePromptTemplate.from_template(
+        system_template)
+
+    # create a string template for a System role with `sample_text` input variable
+    human_template = "{text} {urls}"
+
+    # create a prompt template for a Human role
+    human_message_prompt_template = HumanMessagePromptTemplate.from_template(human_template)
+    
+    # create chat prompt template out of one or several message prompt templates
+    chat_prompt_template = ChatPromptTemplate.from_messages(
+        [system_message_prompt_template, human_message_prompt_template])
+
+    # generate a final prompt by passing all three variables (`output_language`,  `max_words`, `sample_text`)
+    final_prompt = chat_prompt_template.format_prompt(text=rt, urls=sl).to_messages()
+
+    llm = ChatOpenAI(model_name='gpt-3.5-turbo', openai_api_key=OPENAI_API_KEY, streaming=False)
+    response_string = llm(final_prompt)
+
+    return response_string.content

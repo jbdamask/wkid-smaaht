@@ -17,7 +17,8 @@ from utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,
                    get_slack_thread, set_prompt_for_user_and_channel, generate_image,
                    num_tokens_from_messages, process_conversation_history,
                    update_chat, moderate_messages, get_completion_from_messages,
-                   prepare_payload, get_conversation_history, process_message, search_and_chat)  # added imports here
+                   prepare_payload, get_conversation_history, process_message, search_and_chat,
+                   fsp_employee_search)  # added imports here
 
 # Configure logging
 logger = get_logger(__name__)
@@ -213,6 +214,10 @@ def process_event(body, context):
         # chunk_n_update(response, app, channel_id, reply_message_ts)
         # update_chat(app, channel_id, reply_message_ts, "|SnC|\n\n " + response)
         update_chat(app, channel_id, reply_message_ts, response)
+    elif command_text.startswith(":fsp"):
+        text = command_text.replace(":fsp ", "").strip()
+        response = fsp_employee_search(messages, text)
+        update_chat(app, channel_id, reply_message_ts, response)
     else:
         try:
             openai_response = get_completion_from_messages(messages)
@@ -240,7 +245,7 @@ def process_event(body, context):
                 thread_ts=thread_ts,
                 text=f"I can't provide a response. Encountered an error:\n`\n{e}\n`"
             )
-        
+    
     logger.debug("DEBUG: end command_handler")    
 
 def chunk_n_update(openai_response, app, channel_id, reply_message_ts):
