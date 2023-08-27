@@ -411,7 +411,7 @@ def fsp_employee_search(messages, text):
     Slack convention.
     
     Example:
-    <https://flagshippioneering.com/people/drew-dresser|Drew> and <https://flagshippioneering.com/people/sean-murphy|Sean> have experience with proteomics
+    <https://flagshippioneering.com/people/drew-dresser|Drew> and <https://flagshippioneering.com/people/sean-murphy|Sean> have experience with AWS
     """
 
     # create a prompt template for a System role
