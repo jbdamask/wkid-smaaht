@@ -24,7 +24,7 @@ _ = load_dotenv(find_dotenv()) # read local .env file
 from logger_config import get_logger
 from system_prompt import SystemPrompt, FilePromptStrategy, DynamoDBPromptStrategy, S3PromptStrategy
 from chat_manager import ChatManager
-from langchain.tools import DuckDuckGoSearchRun
+from langchain.tools import DuckDuckGoSearchResults
 from langchain.agents import ConversationalChatAgent, AgentExecutor
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
@@ -365,7 +365,8 @@ def search_and_chat(messages, text):
     logger.info("uh....no?")
     logger.info(memory.json)
     llm = ChatOpenAI(model_name=MODEL, openai_api_key=OPENAI_API_KEY, streaming=True)
-    tools = [DuckDuckGoSearchRun(name="Search")]
+    # tools = [DuckDuckGoSearchRun(name="Search")]
+    tools = [DuckDuckGoSearchResults(name="Search")]
     chat_agent = ConversationalChatAgent.from_llm_and_tools(llm=llm, tools=tools)
     executor = AgentExecutor.from_agent_and_tools(
         agent=chat_agent,
