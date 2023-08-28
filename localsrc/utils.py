@@ -387,7 +387,7 @@ def fsp_employee_search(messages, text):
     # You find these values in Flowise under your chatflow's API Endpoint
     API_URL = "<Render flowise endpoint>"
     headers = {"Authorization": "Bearer <Render authorization>"}
-    
+
     payload = {"question": text,}
     response = requests.post(API_URL, 
                                 headers=headers, 
@@ -411,24 +411,25 @@ def fsp_employee_search(messages, text):
     Slack convention.
     
     Example:
-    <https://flagshippioneering.com/people/drew-dresser|Drew> and <https://flagshippioneering.com/people/sean-murphy|Sean> have experience with AWS
+    <https://flagshippioneering.com/people/drew-dresser|Drew> and <https://flagshippioneering.com/people/sean-murphy|Sean> \
+    have experience with AWS
     """
 
     # create a prompt template for a System role
     system_message_prompt_template = SystemMessagePromptTemplate.from_template(
         system_template)
 
-    # create a string template for a System role with `sample_text` input variable
+    # create a string template for a Human role with input variables
     human_template = "{text} {urls}"
 
     # create a prompt template for a Human role
     human_message_prompt_template = HumanMessagePromptTemplate.from_template(human_template)
     
-    # create chat prompt template out of one or several message prompt templates
+    # create chat prompt template 
     chat_prompt_template = ChatPromptTemplate.from_messages(
         [system_message_prompt_template, human_message_prompt_template])
 
-    # generate a final prompt by passing all three variables (`output_language`,  `max_words`, `sample_text`)
+    # generate a final prompt by passing variables (`text`,  `urls`)
     final_prompt = chat_prompt_template.format_prompt(text=rt, urls=sl).to_messages()
 
     llm = ChatOpenAI(model_name='gpt-3.5-turbo', openai_api_key=OPENAI_API_KEY, streaming=False)
