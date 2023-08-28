@@ -362,8 +362,6 @@ def search_and_chat(messages, text):
     memory = ConversationBufferMemory(
         chat_memory=msgs, return_messages=True, memory_key="chat_history", output_key="output"        
     )
-    logger.info("uh....no?")
-    logger.info(memory.json)
     llm = ChatOpenAI(model_name=MODEL, openai_api_key=OPENAI_API_KEY, streaming=True)
     # tools = [DuckDuckGoSearchRun(name="Search")]
     tools = [DuckDuckGoSearchResults(name="Search")]
