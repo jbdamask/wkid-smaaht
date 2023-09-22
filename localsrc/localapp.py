@@ -196,7 +196,8 @@ def process_event(body, context):
     )
 
     if command_text.startswith(":websum "):
-        url = command_text.replace(":websum ", "").replace("<","").replace(">","").strip()
+        # url = command_text.replace(":websum ", "").replace("<","").replace(">","").strip()
+        url = command_text.replace(":websum ", "").split("|")[0].replace("<","").replace(">","").strip()
         response = summarize_web_page(url)
         # update_chat(app, channel_id, reply_message_ts, response)
         slack_resp = app.client.chat_postMessage(
