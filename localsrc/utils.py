@@ -30,6 +30,8 @@ from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.callbacks import StdOutCallbackHandler
 from langchain.memory.chat_message_histories import ChatMessageHistory
+from langchain.document_loaders import WebBaseLoader
+from langchain.chains.summarize import load_summarize_chain
 
 # Configure logging
 logger = get_logger(__name__)
@@ -377,3 +379,12 @@ def search_and_chat(messages, text):
     st_cb = StdOutCallbackHandler()
     response = executor(text, callbacks=[st_cb])
     return response["output"]
+
+def summarize_web_page(url):
+    loader = WebBaseLoader(url)
+    docs = loader.load()
+    llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k")
+    chain = load_summarize_chain(llm, chain_type="stuff")
+    result = chain.run(docs)
+    return result
+    

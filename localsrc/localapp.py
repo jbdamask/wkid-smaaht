@@ -17,7 +17,8 @@ from utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,
                    get_slack_thread, set_prompt_for_user_and_channel, generate_image,
                    num_tokens_from_messages, process_conversation_history,
                    update_chat, moderate_messages, get_completion_from_messages,
-                   prepare_payload, get_conversation_history, process_message, search_and_chat)  # added imports here
+                   prepare_payload, get_conversation_history, process_message, search_and_chat,
+                   summarize_web_page)  # added imports here
 
 # Configure logging
 logger = get_logger(__name__)
@@ -194,6 +195,17 @@ def process_event(body, context):
         text=WAIT_MESSAGE
     )
 
+    if command_text.startswith(":websum "):
+        url = command_text.replace(":websum ", "").replace("<","").replace(">","").strip()
+        response = summarize_web_page(url)
+        # update_chat(app, channel_id, reply_message_ts, response)
+        slack_resp = app.client.chat_postMessage(
+            channel=channel_id,
+            thread_ts=thread_ts,
+            text=response
+            )
+        return
+    
     reply_message_ts = slack_resp.get('message', {}).get('ts')
     conversation_history = get_conversation_history(app, channel_id, thread_ts)
     if conversation_history is None:
