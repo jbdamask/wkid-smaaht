@@ -378,7 +378,8 @@ def search_and_chat(messages, text):
 
 def summarize_web_page(url):
     loader = WebBaseLoader(url)
-    docs = loader.load()
+    # doc = loader.load()
+    docs = loader.load_and_split()
     llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k", openai_api_key=OPENAI_API_KEY)
     from langchain.prompts import PromptTemplate
     prompt_template = """Write a concise, comprehensive summary of the following:
@@ -389,7 +390,14 @@ def summarize_web_page(url):
 
     CONCISE SUMMARY:"""
     PROMPT = PromptTemplate(template=prompt_template, input_variables=["text"])    
-    chain = load_summarize_chain(llm, chain_type="stuff", prompt=PROMPT)
+
+    # Split text
+    # text_splitter = RecursiveCharacterTextSplitter()
+    # texts = text_splitter.split_text(doc)
+    # docs = [Document(page_content=t) for t in texts]
+
+    # chain = load_summarize_chain(llm, chain_type="stuff", prompt=PROMPT)
+    chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=PROMPT, combine_prompt=PROMPT, verbose=True)
     result = chain.run(docs)
     return result
     
