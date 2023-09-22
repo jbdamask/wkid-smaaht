@@ -19,4 +19,5 @@ aws ecr get-login-password --region $region --profile $profile | docker login --
 # docker buildx create --use
 
 # Build, tag and push image to ECR (note, this is multi-arch because I'm building on my M1 Mac)
-docker buildx build --no-cache --platform linux/amd64,linux/arm64 --push -t $account_id.dkr.ecr.$region.amazonaws.com/$my_repo:latest .
+# docker buildx build --no-cache --platform linux/amd64,linux/arm64 --push -t $account_id.dkr.ecr.$region.amazonaws.com/$my_repo:latest .
+docker buildx build --no-cache --platform linux/amd64 --push -t $account_id.dkr.ecr.$region.amazonaws.com/$my_repo:latest .
