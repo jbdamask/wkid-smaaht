@@ -18,7 +18,7 @@ from utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,
                    num_tokens_from_messages, process_conversation_history,
                    update_chat, moderate_messages, get_completion_from_messages,
                    prepare_payload, get_conversation_history, process_message, search_and_chat,
-                   summarize_web_page)  # added imports here
+                   summarize_web_page, researcher)  # added imports here
 
 # Configure logging
 logger = get_logger(__name__)
@@ -195,7 +195,7 @@ def process_event(body, context):
             update_chat(app, channel_id, reply_message_ts, "You need to provide some text for me to generate an image. For example, A cat eating ice cream.")
         # return
     elif command_text.startswith(":snc "):
-        update_chat(app, channel_id, reply_message_ts, "Let me do a bit of research and I'll get right back to you.")
+        update_chat(app, channel_id, reply_message_ts, "Let me do a quick web search.")
         text = command_text.replace(":snc ", "").strip()
         response = search_and_chat(messages, text)
         update_chat(app, channel_id, reply_message_ts, response)
@@ -206,6 +206,11 @@ def process_event(body, context):
         response = summarize_web_page(url)
         update_chat(app, channel_id, reply_message_ts, response)
         # return
+    elif command_text.startswith(":research "):
+        update_chat(app, channel_id, reply_message_ts, "Hold on for a bit while I research that.")
+        topic = command_text.replace(":research ", "").split("|")[0].replace("<","").replace(">","").strip()
+        response = researcher(topic)
+        update_chat(app, channel_id, reply_message_ts, response)        
     else:
         try:
             openai_response = get_completion_from_messages(messages)

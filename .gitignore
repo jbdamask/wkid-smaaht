@@ -5,3 +5,4 @@ __pycache__/
 settings.ini
 .DS_Store
 .vscode/
+chroma_db_oai/

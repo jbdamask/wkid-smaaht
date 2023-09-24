@@ -34,6 +34,16 @@ from langchain.document_loaders import WebBaseLoader
 from langchain.chains.summarize import load_summarize_chain
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.docstore.document import Document
+from langchain.callbacks.base import BaseCallbackHandler
+from langchain.chains import RetrievalQAWithSourcesChain
+from langchain.retrievers.web_research import WebResearchRetriever
+# import faiss
+# from langchain.vectorstores import FAISS 
+import chromadb
+from langchain.vectorstores import Chroma
+from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain.docstore import InMemoryDocstore  
+from langchain.utilities.duckduckgo_search import DuckDuckGoSearchAPIWrapper
 
 # Configure logging
 logger = get_logger(__name__)
@@ -409,3 +419,31 @@ def summarize_web_page(url):
     result = chain.run(docs)
     return result
     
+def researcher(topic):
+    os.environ["GOOGLE_API_KEY"] = os.getenv('GOOGLE_API_KEY_WKID_SMAAHT')
+    os.environ["GOOGLE_CSE_ID"] = os.getenv('GOOGLE_CSE_ID_WKID_SMAAHT')
+    os.environ["OPENAI_API_BASE"] = "https://api.openai.com/v1"
+    embeddings_model = OpenAIEmbeddings()  
+    embedding_size = 1536  
+    # If using FAISS vector store
+    # index = faiss.IndexFlatL2(embedding_size)  
+    # vectorstore_public = FAISS(embeddings_model.embed_query, index, InMemoryDocstore({}), {})
+
+    # If using Chroma vector store    
+    vectorstore_public = Chroma("langchain_store", embedding_function=embeddings_model)
+
+    llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k", openai_api_key=OPENAI_API_KEY)
+    # Search
+    from langchain.utilities import GoogleSearchAPIWrapper
+    search = GoogleSearchAPIWrapper() 
+    # Initialize 
+    web_retriever = WebResearchRetriever.from_llm(
+        vectorstore=vectorstore_public,
+        llm=llm, 
+        search=search, 
+        num_search_results=4
+    )
+    qa_chain = RetrievalQAWithSourcesChain.from_chain_type(llm, retriever=web_retriever)
+    qa_chain.return_source_documents=True
+    result = qa_chain({"question":topic})
+    return("Answer:\n" + result['answer'] + "\n\nSources:\n" + result['sources'].replace(',', '\n'))
