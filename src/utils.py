@@ -358,9 +358,10 @@ def search_and_chat(messages, text):
     # I don't think i need this next line because the text message is already in the history
     # msgs.add_user_message(text)
     memory = ConversationBufferMemory(
-        chat_memory=msgs, return_messages=True, memory_key="chat_history", output_key="output"        
+        chat_memory=msgs, return_messages=True, memory_key="chat_history", output_key="output"
     )
-    llm = ChatOpenAI(model_name=MODEL, openai_api_key=OPENAI_API_KEY, streaming=True)
+    # llm = ChatOpenAI(model_name=MODEL, openai_api_key=OPENAI_API_KEY, streaming=True)
+    llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k", openai_api_key=OPENAI_API_KEY, streaming=True)
     # tools = [DuckDuckGoSearchRun(name="Search")]
     tools = [DuckDuckGoSearchResults(name="Search")]
     chat_agent = ConversationalChatAgent.from_llm_and_tools(llm=llm, tools=tools)
