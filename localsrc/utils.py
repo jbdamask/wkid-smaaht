@@ -403,7 +403,7 @@ def summarize_web_page(url):
     # docs = [Document(page_content=t) for t in texts]
 
     # chain = load_summarize_chain(llm, chain_type="stuff", prompt=PROMPT)
-    chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=PROMPT, combine_prompt=PROMPT, verbose=True)
+    chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=PROMPT, combine_prompt=PROMPT)
     result = chain.run(docs)
     return result
     
