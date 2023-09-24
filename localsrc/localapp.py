@@ -17,7 +17,8 @@ from utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,
                    get_slack_thread, set_prompt_for_user_and_channel, generate_image,
                    num_tokens_from_messages, process_conversation_history,
                    update_chat, moderate_messages, get_completion_from_messages,
-                   prepare_payload, get_conversation_history, process_message, search_and_chat)  # added imports here
+                   prepare_payload, get_conversation_history, process_message, search_and_chat,
+                   summarize_web_page)  # added imports here
 
 # Configure logging
 logger = get_logger(__name__)
@@ -145,23 +146,77 @@ def process_event(body, context):
         )         
         return
 
+    # if command_text.startswith(":pix "):
+    #     image_text = command_text.replace(":pix ", "").strip()
+    #     if image_text:
+    #         app.client.chat_postMessage(
+    #             channel=channel_id,
+    #             thread_ts=thread_ts,
+    #             text=f"Generating your image...just a sec"
+    #         )              
+    #         try:
+    #             response = generate_image(image_text)   
+    #         except Exception as e:
+    #             logger.error(response)
+    #             app.client.chat_postMessage(
+    #                 channel=channel_id,
+    #                 thread_ts=thread_ts,
+    #                 text=f"Error generating image: {e}"
+    #             )
+    #             return
+    #         app.client.chat_postMessage(
+    #             channel=channel_id,
+    #             thread_ts=thread_ts,
+    #             text=".", # Used to suppress Slack warnings about not including text in the post
+    #             blocks=[
+    #                 {
+    #                     "type": "image",
+    #                     "title": {
+    #                         "type": "plain_text",
+    #                         "text": image_text,
+    #                         "emoji": True
+    #                     },
+    #                     "image_url": response['blocks'][0]['image_url'],
+    #                     "alt_text": image_text
+    #                 }
+    #             ]                
+    #         )
+    #     else:
+    #         app.client.chat_postMessage(
+    #             channel=channel_id,
+    #             thread_ts=thread_ts,
+    #             text="No text provided for image generation."
+    #         )
+    #     return
+
+    slack_resp = app.client.chat_postMessage(
+        channel=channel_id,
+        thread_ts=thread_ts,
+        text=WAIT_MESSAGE
+    )
+    
+    reply_message_ts = slack_resp.get('message', {}).get('ts')
+    conversation_history = get_conversation_history(app, channel_id, thread_ts)
+    if conversation_history is None:
+        slack_resp = app.client.chat_postMessage(
+            channel=channel_id,
+            thread_ts=thread_ts,
+            text="Sorry. Slack had a problem processing this message"
+        )
+        return
+    
+    messages = process_conversation_history(conversation_history, bot_user_id, channel_id, thread_ts, user_id)
+    num_tokens = num_tokens_from_messages(messages)
+
     if command_text.startswith(":pix "):
         image_text = command_text.replace(":pix ", "").strip()
         if image_text:
-            app.client.chat_postMessage(
-                channel=channel_id,
-                thread_ts=thread_ts,
-                text=f"Generating your image...just a sec"
-            )              
+            update_chat(app, channel_id, reply_message_ts, "Generating your image...just a sec")
             try:
                 response = generate_image(image_text)   
             except Exception as e:
                 logger.error(response)
-                app.client.chat_postMessage(
-                    channel=channel_id,
-                    thread_ts=thread_ts,
-                    text=f"Error generating image: {e}"
-                )
+                update_chat(app, channel_id, reply_message_ts, "Sorry. Error generating image: {e}")
                 return
             app.client.chat_postMessage(
                 channel=channel_id,
@@ -181,58 +236,25 @@ def process_event(body, context):
                 ]                
             )
         else:
-            app.client.chat_postMessage(
-                channel=channel_id,
-                thread_ts=thread_ts,
-                text="No text provided for image generation."
-            )
-        return
-
-    slack_resp = app.client.chat_postMessage(
-        channel=channel_id,
-        thread_ts=thread_ts,
-        text=WAIT_MESSAGE
-    )
-
-    reply_message_ts = slack_resp.get('message', {}).get('ts')
-    conversation_history = get_conversation_history(app, channel_id, thread_ts)
-    if conversation_history is None:
-        slack_resp = app.client.chat_postMessage(
-            channel=channel_id,
-            thread_ts=thread_ts,
-            text="Sorry. Slack had a problem processing this message"
-        )
-        return
-    
-    messages = process_conversation_history(conversation_history, bot_user_id, channel_id, thread_ts, user_id)
-    num_tokens = num_tokens_from_messages(messages)
-
-    if command_text.startswith(":snc "):
+            update_chat(app, channel_id, reply_message_ts, "You need to provide some text for me to generate an image. For example, A cat eating ice cream.")
+        # return
+    elif command_text.startswith(":snc "):
+        update_chat(app, channel_id, reply_message_ts, "Let me do a bit of research and I'll get right back to you.")
         text = command_text.replace(":snc ", "").strip()
         response = search_and_chat(messages, text)
-        # chunk_n_update(response, app, channel_id, reply_message_ts)
-        # update_chat(app, channel_id, reply_message_ts, "|SnC|\n\n " + response)
         update_chat(app, channel_id, reply_message_ts, response)
+        # return
+    elif command_text.startswith(":websum "):
+        update_chat(app, channel_id, reply_message_ts, "I'll try to summarize that page. This may take a minute (literally).")
+        url = command_text.replace(":websum ", "").split("|")[0].replace("<","").replace(">","").strip()
+        response = summarize_web_page(url)
+        update_chat(app, channel_id, reply_message_ts, response)
+        # return
     else:
         try:
             openai_response = get_completion_from_messages(messages)
             logger.debug("DEBUG: Got response from OpenAI: ", type(openai_response))
             chunk_n_update(openai_response, app, channel_id, reply_message_ts)
-
-            # response_text = ""
-            # ii = 0
-            # for chunk in openai_response:
-            #     if chunk.choices[0].delta.get('content'):
-            #         ii = ii + 1
-            #         response_text += chunk.choices[0].delta.content
-            #         if ii > N_CHUNKS_TO_CONCAT_BEFORE_UPDATING:
-            #             update_chat(app, channel_id, reply_message_ts, response_text)
-            #             ii = 0
-            #     elif chunk.choices[0].finish_reason == 'stop':
-            #         update_chat(app, channel_id, reply_message_ts, response_text)
-            # response_json = {"response_text": response_text}
-            # logger.info(json.dumps(response_json))
-            
         except Exception as e:
             logger.error(f"Error: {e}")
             app.client.chat_postMessage(
@@ -240,8 +262,8 @@ def process_event(body, context):
                 thread_ts=thread_ts,
                 text=f"I can't provide a response. Encountered an error:\n`\n{e}\n`"
             )
-        
     logger.debug("DEBUG: end command_handler")    
+
 
 def chunk_n_update(openai_response, app, channel_id, reply_message_ts):
         response_text = ""
