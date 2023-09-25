@@ -2,7 +2,10 @@
 # Includes various functions and plumbing code.
 # Not meant for re-use, but having this file makes it easier to read main application code
 
+import sys
 import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import re
 import boto3
 from botocore.exceptions import ClientError
@@ -35,7 +38,8 @@ from langchain.chains.summarize import load_summarize_chain
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.docstore.document import Document
 from langchain.callbacks.base import BaseCallbackHandler
-from langchain.chains import RetrievalQAWithSourcesChain
+# from langchain.chains import RetrievalQAWithSourcesChain
+from langchain_mods.qa_with_sources.retrieval import RetrievalQAWithSourcesChain
 from langchain.retrievers.web_research import WebResearchRetriever
 # import faiss
 # from langchain.vectorstores import FAISS 
