@@ -21,9 +21,9 @@ from trafilatura.settings import use_config
 from cachetools import LRUCache
 from dotenv import load_dotenv, find_dotenv
 _ = load_dotenv(find_dotenv()) # read local .env file
-from logger_config import get_logger
-from system_prompt import SystemPrompt, FilePromptStrategy, DynamoDBPromptStrategy, S3PromptStrategy
-from chat_manager import ChatManager
+from localsrc.logger_config import get_logger
+from localsrc.system_prompt import SystemPrompt, FilePromptStrategy, DynamoDBPromptStrategy, S3PromptStrategy
+from localsrc.chat_manager import ChatManager
 from langchain.tools import DuckDuckGoSearchResults
 from langchain.agents import ConversationalChatAgent, AgentExecutor
 from langchain.chat_models import ChatOpenAI
@@ -34,6 +34,8 @@ from langchain.document_loaders import WebBaseLoader
 from langchain.chains.summarize import load_summarize_chain
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.docstore.document import Document
+from chat_with_docs.lc_file_handler import create_file_handler
+from chat_with_docs.chat_with_pdf import ChatWithDoc
 
 # Configure logging
 logger = get_logger(__name__)
@@ -409,3 +411,24 @@ def summarize_web_page(url):
     result = chain.run(docs)
     return result
     
+# Method to handle file uploads
+def process_file(app,body, context):
+    logger.info(f"File: {body['event']['files'][0]['name']}")
+    channel_id=body['event']['channel']
+    thread_id=body['event']['ts']
+    slack_resp = app.client.chat_postMessage(
+        channel=channel_id,
+        thread_ts=thread_id,
+        text="Ah, I see you uploaded a file. Give me a minute to see what it's about."
+    )
+    handler = create_file_handler(body['event']['files'][0]['name'], OPENAI_API_KEY)
+    file_id = body['event']['files'][0]['id']
+    result = app.client.files_info(file=file_id)    
+    file_info = result['file']    
+    # logger.debug(file_info['url_private'])
+    h = handler.read_file(file_info['url_private'], SLACK_BOT_TOKEN)
+    slack_resp = app.client.chat_postMessage(
+        channel=body['event']['channel'],
+        thread_ts=body['event']['ts'],
+        text=h
+    )

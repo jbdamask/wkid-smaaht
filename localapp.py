@@ -8,17 +8,17 @@ import openai
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from pprint import pprint
-from logger_config import get_logger
+from localsrc.logger_config import get_logger
 import json
 
-from utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,
+from localsrc.utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,
                    SLACK_APP_TOKEN, SLACK_BOT_TOKEN, WAIT_MESSAGE,
                    MAX_TOKENS, DEBUG, prompt, 
                    get_slack_thread, set_prompt_for_user_and_channel, generate_image,
                    num_tokens_from_messages, process_conversation_history,
                    update_chat, moderate_messages, get_completion_from_messages,
                    prepare_payload, get_conversation_history, process_message, search_and_chat,
-                   summarize_web_page)  # added imports here
+                   summarize_web_page, process_file)  # added imports here
 
 # Configure logging
 logger = get_logger(__name__)
@@ -63,6 +63,21 @@ def make_image(ack, respond, command):
 @app.message("hello")
 def message_hello(message, say):
     say(f"Hey there <@{message.get('user')}>!")
+
+# Listens for DM file uploads
+@app.event({"type": "message", "subtype": "file_share"})
+def handle_file(body, context, logger):
+    # logger.info(body)
+    # print(create_file_handler(body['event']['files'][0]['name']))
+    process_file(app, body, context)
+    # process_chat(body, context)
+
+# Listens for channel file uploads
+@app.event({"type": "app_mention", "subtype": "file_share"})
+def handle_file(body, context, logger):
+    # logger.info(body)
+    # process_chat(body, context)
+    process_file(body, context)
 
 # Checks to see if a post is from the W'kid Smaaht bot. 
 # If so, we don't process
@@ -206,6 +221,11 @@ def process_event(body, context):
         response = summarize_web_page(url)
         update_chat(app, channel_id, reply_message_ts, response)
         # return
+    elif command_text.startswith(":chatdoc "):
+        update_chat(app, channel_id, reply_message_ts, "I'll try to summarize that page. This may take a minute (literally).")
+        url = command_text.replace(":websum ", "").split("|")[0].replace("<","").replace(">","").strip()
+        response = summarize_web_page(url)
+        update_chat(app, channel_id, reply_message_ts, response)        
     else:
         try:
             openai_response = get_completion_from_messages(messages)
