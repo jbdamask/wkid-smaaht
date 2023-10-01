@@ -69,15 +69,30 @@ def message_hello(message, say):
 def handle_file(body, context, logger):
     # logger.info(body)
     # print(create_file_handler(body['event']['files'][0]['name']))
-    summarize_file(app, body, context)
     # process_chat(body, context)
+    deal_with_file(body, context, logger)
 
-# Listens for channel file uploads
-@app.event({"type": "app_mention", "subtype": "file_share"})
-def handle_file(body, context, logger):
-    # logger.info(body)
-    # process_chat(body, context)
-    summarize_file(body, context)
+# # Listens for channel file uploads
+# @app.event({"type": "app_mention", "subtype": "file_share"})
+# def handle_file(body, context, logger):
+#     # logger.info(body)
+#     # process_chat(body, context)
+#     # summarize_file(body, context)
+#     deal_with_file(body, context, logger)
+
+
+# Processes file upload
+def deal_with_file(body, context, logger):
+    channel_id=body['event']['channel']
+    thread_id=body['event']['ts']
+    slack_resp = app.client.chat_postMessage(
+        channel=channel_id,
+        thread_ts=thread_id,
+        text="Ah, I see you uploaded a file. Give me a minute to summarize it for you."
+    )
+    reply_message_ts = slack_resp.get('message', {}).get('ts')    
+    response = summarize_file(app, body, context)
+    update_chat(app, channel_id, reply_message_ts, response)  
 
 # Checks to see if a post is from the W'kid Smaaht bot. 
 # If so, we don't process
@@ -124,8 +139,13 @@ def handle_message_events(body, context, logger):
 # Process app mention events
 @app.event("app_mention")
 def command_handler(body, context):
-    # logger.debug(body)
-    process_event(body, context)
+    # Check if the event has a subtype
+    if 'subtype' in body['event']:
+        # If the subtype is 'file_share', do something
+        if body['event']['subtype'] == 'file_share':
+            deal_with_file(body, context, logger)
+    else:
+        process_event(body, context)
 
 # Where the magic happens
 def process_event(body, context):
@@ -218,6 +238,7 @@ def process_event(body, context):
     elif command_text.startswith(":websum "):
         update_chat(app, channel_id, reply_message_ts, "I'll try to summarize that page. This may take a minute (literally).")
         url = command_text.replace(":websum ", "").split("|")[0].replace("<","").replace(">","").strip()
+        logger.info("Dude! WTF??" + url)
         response = summarize_web_page(url)
         update_chat(app, channel_id, reply_message_ts, response)
         # return

@@ -388,9 +388,7 @@ def search_and_chat(messages, text):
     return response["output"]
 
 
-def summarize_chain(loader):
-    loader = loader
-    docs = loader.load_and_split()
+def summarize_chain(docs):
     llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k", openai_api_key=OPENAI_API_KEY)
     PROMPT = CONCISE_SUMMARY_PROMPT
     chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=PROMPT, combine_prompt=PROMPT)
@@ -399,32 +397,27 @@ def summarize_chain(loader):
 
 def summarize_web_page(url):
     loader = WebBaseLoader(url)
-    # doc = loader.load()
-    # docs = loader.load_and_split()
-    # llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k", openai_api_key=OPENAI_API_KEY)
-    # PROMPT = CONCISE_SUMMARY_PROMPT
-    # chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=PROMPT, combine_prompt=PROMPT)
-    # result = chain.run(docs)
-    return summarize_chain(loader)
+    loader = loader
+    docs = loader.load_and_split()
+    return summarize_chain(docs)
     
 # Method to handle file uploads
 def summarize_file(app,body, context):
     logger.info(f"File: {body['event']['files'][0]['name']}")
-    channel_id=body['event']['channel']
-    thread_id=body['event']['ts']
-    slack_resp = app.client.chat_postMessage(
-        channel=channel_id,
-        thread_ts=thread_id,
-        text="Ah, I see you uploaded a file. Give me a minute to see what it's about."
-    )
     handler = create_file_handler(body['event']['files'][0]['name'], OPENAI_API_KEY)
     file_id = body['event']['files'][0]['id']
     result = app.client.files_info(file=file_id)    
     file_info = result['file']    
     # logger.debug(file_info['url_private'])
-    h = handler.read_file(file_info['url_private'], SLACK_BOT_TOKEN)
-    slack_resp = app.client.chat_postMessage(
-        channel=body['event']['channel'],
-        thread_ts=body['event']['ts'],
-        text=h
-    )
+    # h = handler.read_file(file_info['url_private'], SLACK_BOT_TOKEN)
+    docs = handler.read_file(file_info['url_private'], SLACK_BOT_TOKEN)
+    # llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k", openai_api_key=OPENAI_API_KEY) 
+    # chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=PROMPT, combine_prompt=PROMPT)
+    # result = chain.run(pages)
+    result = summarize_chain(docs)
+    return result
+    # slack_resp = app.client.chat_postMessage(
+    #     channel=body['event']['channel'],
+    #     thread_ts=body['event']['ts'],
+    #     text=h
+    # )
