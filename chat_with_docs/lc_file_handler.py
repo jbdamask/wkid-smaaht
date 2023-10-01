@@ -87,20 +87,6 @@ class PDFHandler(Handler):
         loader = OnlinePDFLoader(url, headers=headers)
         pages = loader.load_and_split()
         return pages
-        # from langchain.prompts import PromptTemplate
-        # from langchain.chains.summarize import load_summarize_chain
-        # prompt_template = """Write a concise, comprehensive summary of the following:
-
-
-        # "{text}"
-
-
-        # CONCISE SUMMARY:"""
-        # PROMPT = PromptTemplate(template=prompt_template, input_variables=["text"])  
-        # llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k", openai_api_key=self.openai_api_key)        
-        # chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=PROMPT, combine_prompt=PROMPT)
-        # result = chain.run(pages)
-        # return result
 
 class DOCXHandler(Handler):
     def handle(self):

@@ -362,7 +362,6 @@ def copy_history_to_langchain(message):
 
 
 def search_and_chat(messages, text):
-    # msgs = ChatMessageHistory()
     # Build LangChain memory from Slack chat history
     msgs = copy_history_to_langchain(messages)
     # I don't think i need this next line because the text message is already in the history
@@ -370,9 +369,7 @@ def search_and_chat(messages, text):
     memory = ConversationBufferMemory(
         chat_memory=msgs, return_messages=True, memory_key="chat_history", output_key="output"
     )
-    # llm = ChatOpenAI(model_name=MODEL, openai_api_key=OPENAI_API_KEY, streaming=True)
     llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k", openai_api_key=OPENAI_API_KEY, streaming=True)
-    # tools = [DuckDuckGoSearchRun(name="Search")]
     tools = [DuckDuckGoSearchResults(name="Search")]
     chat_agent = ConversationalChatAgent.from_llm_and_tools(llm=llm, tools=tools)
     executor = AgentExecutor.from_agent_and_tools(
@@ -408,16 +405,6 @@ def summarize_file(app,body, context):
     file_id = body['event']['files'][0]['id']
     result = app.client.files_info(file=file_id)    
     file_info = result['file']    
-    # logger.debug(file_info['url_private'])
-    # h = handler.read_file(file_info['url_private'], SLACK_BOT_TOKEN)
     docs = handler.read_file(file_info['url_private'], SLACK_BOT_TOKEN)
-    # llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k", openai_api_key=OPENAI_API_KEY) 
-    # chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=PROMPT, combine_prompt=PROMPT)
-    # result = chain.run(pages)
     result = summarize_chain(docs)
     return result
-    # slack_resp = app.client.chat_postMessage(
-    #     channel=body['event']['channel'],
-    #     thread_ts=body['event']['ts'],
-    #     text=h
-    # )

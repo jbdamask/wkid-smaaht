@@ -72,15 +72,6 @@ def handle_file(body, context, logger):
     # process_chat(body, context)
     deal_with_file(body, context, logger)
 
-# # Listens for channel file uploads
-# @app.event({"type": "app_mention", "subtype": "file_share"})
-# def handle_file(body, context, logger):
-#     # logger.info(body)
-#     # process_chat(body, context)
-#     # summarize_file(body, context)
-#     deal_with_file(body, context, logger)
-
-
 # Processes file upload
 def deal_with_file(body, context, logger):
     channel_id=body['event']['channel']
@@ -228,25 +219,17 @@ def process_event(body, context):
             )
         else:
             update_chat(app, channel_id, reply_message_ts, "You need to provide some text for me to generate an image. For example, A cat eating ice cream.")
-        # return
     elif command_text.startswith(":snc "):
         update_chat(app, channel_id, reply_message_ts, "Let me do a bit of research and I'll get right back to you.")
         text = command_text.replace(":snc ", "").strip()
         response = search_and_chat(messages, text)
         update_chat(app, channel_id, reply_message_ts, response)
-        # return
     elif command_text.startswith(":websum "):
         update_chat(app, channel_id, reply_message_ts, "I'll try to summarize that page. This may take a minute (literally).")
         url = command_text.replace(":websum ", "").split("|")[0].replace("<","").replace(">","").strip()
         logger.info("Dude! WTF??" + url)
         response = summarize_web_page(url)
-        update_chat(app, channel_id, reply_message_ts, response)
-        # return
-    # elif command_text.startswith(":chatdoc "):
-    #     update_chat(app, channel_id, reply_message_ts, "I'll try to summarize that page. This may take a minute (literally).")
-    #     url = command_text.replace(":websum ", "").split("|")[0].replace("<","").replace(">","").strip()
-    #     response = summarize_web_page(url)
-    #     update_chat(app, channel_id, reply_message_ts, response)        
+        update_chat(app, channel_id, reply_message_ts, response)      
     else:
         try:
             openai_response = get_completion_from_messages(messages)
