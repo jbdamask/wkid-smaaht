@@ -36,6 +36,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.docstore.document import Document
 from chat_with_docs.lc_file_handler import create_file_handler
 from chat_with_docs.chat_with_pdf import ChatWithDoc
+from chat_with_docs.prompt import CONCISE_SUMMARY_PROMPT
 
 # Configure logging
 logger = get_logger(__name__)
@@ -391,15 +392,16 @@ def summarize_web_page(url):
     # doc = loader.load()
     docs = loader.load_and_split()
     llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k", openai_api_key=OPENAI_API_KEY)
-    from langchain.prompts import PromptTemplate
-    prompt_template = """Write a concise, comprehensive summary of the following:
+    PROMPT = CONCISE_SUMMARY_PROMPT
+    # from langchain.prompts import PromptTemplate
+    # prompt_template = """Write a concise, comprehensive summary of the following:
 
 
-    "{text}"
+    # "{text}"
 
 
-    CONCISE SUMMARY:"""
-    PROMPT = PromptTemplate(template=prompt_template, input_variables=["text"])    
+    # CONCISE SUMMARY:"""
+    # PROMPT = PromptTemplate(template=prompt_template, input_variables=["text"])    
 
     # Split text
     # text_splitter = RecursiveCharacterTextSplitter()
