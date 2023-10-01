@@ -221,11 +221,11 @@ def process_event(body, context):
         response = summarize_web_page(url)
         update_chat(app, channel_id, reply_message_ts, response)
         # return
-    elif command_text.startswith(":chatdoc "):
-        update_chat(app, channel_id, reply_message_ts, "I'll try to summarize that page. This may take a minute (literally).")
-        url = command_text.replace(":websum ", "").split("|")[0].replace("<","").replace(">","").strip()
-        response = summarize_web_page(url)
-        update_chat(app, channel_id, reply_message_ts, response)        
+    # elif command_text.startswith(":chatdoc "):
+    #     update_chat(app, channel_id, reply_message_ts, "I'll try to summarize that page. This may take a minute (literally).")
+    #     url = command_text.replace(":websum ", "").split("|")[0].replace("<","").replace(">","").strip()
+    #     response = summarize_web_page(url)
+    #     update_chat(app, channel_id, reply_message_ts, response)        
     else:
         try:
             openai_response = get_completion_from_messages(messages)
