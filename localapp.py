@@ -18,7 +18,7 @@ from localsrc.utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,
                    num_tokens_from_messages, process_conversation_history,
                    update_chat, moderate_messages, get_completion_from_messages,
                    prepare_payload, get_conversation_history, process_message, search_and_chat,
-                   summarize_web_page, process_file)  # added imports here
+                   summarize_web_page, summarize_file)  # added imports here
 
 # Configure logging
 logger = get_logger(__name__)
@@ -69,7 +69,7 @@ def message_hello(message, say):
 def handle_file(body, context, logger):
     # logger.info(body)
     # print(create_file_handler(body['event']['files'][0]['name']))
-    process_file(app, body, context)
+    summarize_file(app, body, context)
     # process_chat(body, context)
 
 # Listens for channel file uploads
@@ -77,7 +77,7 @@ def handle_file(body, context, logger):
 def handle_file(body, context, logger):
     # logger.info(body)
     # process_chat(body, context)
-    process_file(body, context)
+    summarize_file(body, context)
 
 # Checks to see if a post is from the W'kid Smaaht bot. 
 # If so, we don't process

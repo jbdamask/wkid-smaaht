@@ -387,34 +387,28 @@ def search_and_chat(messages, text):
     response = executor(text, callbacks=[st_cb])
     return response["output"]
 
-def summarize_web_page(url):
-    loader = WebBaseLoader(url)
-    # doc = loader.load()
+
+def summarize_chain(loader):
+    loader = loader
     docs = loader.load_and_split()
     llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k", openai_api_key=OPENAI_API_KEY)
     PROMPT = CONCISE_SUMMARY_PROMPT
-    # from langchain.prompts import PromptTemplate
-    # prompt_template = """Write a concise, comprehensive summary of the following:
-
-
-    # "{text}"
-
-
-    # CONCISE SUMMARY:"""
-    # PROMPT = PromptTemplate(template=prompt_template, input_variables=["text"])    
-
-    # Split text
-    # text_splitter = RecursiveCharacterTextSplitter()
-    # texts = text_splitter.split_text(doc)
-    # docs = [Document(page_content=t) for t in texts]
-
-    # chain = load_summarize_chain(llm, chain_type="stuff", prompt=PROMPT)
     chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=PROMPT, combine_prompt=PROMPT)
     result = chain.run(docs)
     return result
+
+def summarize_web_page(url):
+    loader = WebBaseLoader(url)
+    # doc = loader.load()
+    # docs = loader.load_and_split()
+    # llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k", openai_api_key=OPENAI_API_KEY)
+    # PROMPT = CONCISE_SUMMARY_PROMPT
+    # chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=PROMPT, combine_prompt=PROMPT)
+    # result = chain.run(docs)
+    return summarize_chain(loader)
     
 # Method to handle file uploads
-def process_file(app,body, context):
+def summarize_file(app,body, context):
     logger.info(f"File: {body['event']['files'][0]['name']}")
     channel_id=body['event']['channel']
     thread_id=body['event']['ts']
