@@ -8,17 +8,17 @@ import openai
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from pprint import pprint
-from logger_config import get_logger
+from src.logger_config import get_logger
 import json
 
-from utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,
+from src.utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,
                    SLACK_APP_TOKEN, SLACK_BOT_TOKEN, WAIT_MESSAGE,
                    MAX_TOKENS, DEBUG, prompt, 
                    get_slack_thread, set_prompt_for_user_and_channel, generate_image,
                    num_tokens_from_messages, process_conversation_history,
                    update_chat, moderate_messages, get_completion_from_messages,
                    prepare_payload, get_conversation_history, process_message, search_and_chat,
-                   summarize_web_page)  # added imports here
+                   summarize_web_page, summarize_file)  # added imports here
 
 # Configure logging
 logger = get_logger(__name__)
@@ -74,6 +74,28 @@ def is_it_bot(body):
     else:
         return False
 
+# Listens for DM file uploads
+@app.event({"type": "message", "subtype": "file_share"})
+def handle_file(body, context, logger):
+    # logger.info(body)
+    # print(create_file_handler(body['event']['files'][0]['name']))
+    # process_chat(body, context)
+    deal_with_file(body, context, logger)
+
+# Processes file upload
+def deal_with_file(body, context, logger):
+    channel_id=body['event']['channel']
+    thread_id=body['event']['ts']
+    slack_resp = app.client.chat_postMessage(
+        channel=channel_id,
+        thread_ts=thread_id,
+        text="Ah, I see you uploaded a file. Give me a minute to summarize it for you."
+    )
+    reply_message_ts = slack_resp.get('message', {}).get('ts')    
+    response = summarize_file(app, body, context)
+    update_chat(app, channel_id, reply_message_ts, response)  
+
+
 # Process direct messages
 @app.event("message")
 def handle_message_events(body, context, logger):
@@ -109,8 +131,14 @@ def handle_message_events(body, context, logger):
 # Process app mention events
 @app.event("app_mention")
 def command_handler(body, context):
-    # logger.debug(body)
-    process_event(body, context)
+    # Check if the event has a subtype
+    if 'subtype' in body['event']:
+        # If the subtype is 'file_share', do something
+        if body['event']['subtype'] == 'file_share':
+            deal_with_file(body, context, logger)
+    else:
+        process_event(body, context)
+
 
 # Where the magic happens
 def process_event(body, context):

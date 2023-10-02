@@ -35,7 +35,7 @@ from langchain.chains.summarize import load_summarize_chain
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.docstore.document import Document
 from chat_with_docs.lc_file_handler import create_file_handler
-from chat_with_docs.chat_with_pdf import ChatWithDoc
+# from chat_with_docs.chat_with_pdf import ChatWithDoc
 from chat_with_docs.prompt import CONCISE_SUMMARY_PROMPT
 
 # Configure logging

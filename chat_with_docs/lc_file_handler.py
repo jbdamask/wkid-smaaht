@@ -9,7 +9,7 @@ import abc
 import os
 import requests
 from io import StringIO
-from localsrc.logger_config import get_logger
+from src.logger_config import get_logger
 langchain.verbose = True
 
 # Configure logging

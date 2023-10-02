@@ -1,5 +1,5 @@
 from llama_index import VectorStoreIndex, SimpleDirectoryReader
-from localsrc.logger_config import get_logger
+from src.logger_config import get_logger
 
 
 # Configure logging
