@@ -11,6 +11,7 @@ from pprint import pprint
 from src.logger_config import get_logger
 import json
 
+# To test locally, change the next line from src.utils to localsrc.utils
 from src.utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,
                    SLACK_APP_TOKEN, SLACK_BOT_TOKEN, WAIT_MESSAGE,
                    MAX_TOKENS, DEBUG, prompt, 
