@@ -26,6 +26,7 @@ logger = get_logger(__name__)
 # Set the Slack App bot token
 app = App(token=SLACK_BOT_TOKEN)
 
+### SLACK EVENT HANDLERS ###
 # Slack slash command to return list of all available system prompts
 @app.command("/prompts")
 def list_prompts(ack, respond):
@@ -60,44 +61,16 @@ def make_image(ack, respond, command):
 # Listens to incoming messages that contain "hello"
 # To learn available listener arguments,
 # visit https://slack.dev/bolt-python/api-docs/slack_bolt/kwargs_injection/args.html
-@app.message("hello")
-def message_hello(message, say):
-    say(f"Hey there <@{message.get('user')}>!")
-
-# Listens for DM file uploads
-@app.event({"type": "message", "subtype": "file_share"})
-def handle_file(body, context, logger):
-    # logger.info(body)
-    # print(create_file_handler(body['event']['files'][0]['name']))
-    # process_chat(body, context)
-    deal_with_file(body, context, logger)
-
-# Processes file upload
-def deal_with_file(body, context, logger):
-    channel_id=body['event']['channel']
-    thread_id=body['event']['ts']
-    slack_resp = app.client.chat_postMessage(
-        channel=channel_id,
-        thread_ts=thread_id,
-        text="Ah, I see you uploaded a file. Give me a minute to summarize it for you."
-    )
-    reply_message_ts = slack_resp.get('message', {}).get('ts')    
-    response = summarize_file(app, body, context)
-    update_chat(app, channel_id, reply_message_ts, response)  
-
-# Checks to see if a post is from the W'kid Smaaht bot. 
-# If so, we don't process
-def is_it_bot(body):
-    if 'message' in body:
-        b = body.get('message[bot_id]') 
-        if b is not None:
-            return True
-    else:
-        return False
+# @app.message("hello")
+# def message_hello(message, say):
+#     say(f"Hey there <@{message.get('user')}>!")
 
 # Process direct messages
 @app.event("message")
 def handle_message_events(body, context, logger):
+    if is_it_bot(body):
+        return
+    # event_router(body, context)
     # logger.debug(body)
     event = body.get('event')
     if event is None:
@@ -125,11 +98,6 @@ def handle_message_events(body, context, logger):
     else:
         return
     logger.debug("Processing DM message")
-    process_event(body, context)
-
-# Process app mention events
-@app.event("app_mention")
-def command_handler(body, context):
     # Check if the event has a subtype
     if 'subtype' in body['event']:
         # If the subtype is 'file_share', do something
@@ -137,6 +105,77 @@ def command_handler(body, context):
             deal_with_file(body, context, logger)
     else:
         process_event(body, context)
+
+# # Listens for DM file uploads
+# @app.event({"type": "message", "subtype": "file_share"})
+# def handle_file(body, context, logger):
+#     event_router(body, context)
+#     # logger.info(body)
+#     # print(create_file_handler(body['event']['files'][0]['name']))
+#     # process_chat(body, context)
+#     if not is_it_bot():
+#         # global CNT
+#         # logger.info(f"handle_file event: {CNT}")
+#         # CNT += 1
+#         deal_with_file(body, context, logger)
+
+# Process app mention events
+@app.event("app_mention")
+def command_handler(body, context):
+    # event_router(body, context)
+    if 'subtype' in body['event']:
+        # If the subtype is 'file_share', do something
+        if body['event']['subtype'] == 'file_share':
+            deal_with_file(body, context, logger)
+    else:
+        process_event(body, context)
+
+# Checks to see if a post is from the W'kid Smaaht bot. 
+# If so, we don't process
+def is_it_bot(body):
+    if 'message' in body:
+        b = body.get('message[bot_id]') 
+        if b is not None:
+            return True
+    else:
+        return False
+
+# Conditional logic to handle Slack events
+# def event_router(body, context):
+#     event = body.get('event', {})
+#     text = event.get('text', '')
+#     thread_id=event.get('ts')
+#     channel_id = event.get('channel', '')
+#     subtype = event.get('subtype')
+
+#     if event.get('type') == 'app_mention':
+#         # Your code to handle app mentions goes here
+#         slack_resp = app.client.chat_postMessage(
+#             channel=channel_id,
+#             thread_ts=thread_id,
+#             text=f"Received App mention event of type {event['type']} in {channel_id} SubType: {subtype}"
+#         )
+#     elif channel_id.startswith('D') and not text.startswith('<@'):
+#         # Your code to handle non-mention DMs goes here
+#         slack_resp = app.client.chat_postMessage(
+#             channel=channel_id,
+#             thread_ts=thread_id,
+#             text=f"Received DM event of type {event['type']} in {channel_id} SubType: {subtype}"
+#         )
+
+# Processes file upload
+def deal_with_file(body, context, logger):
+    channel_id=body['event']['channel']
+    thread_id=body['event']['ts']
+    slack_resp = app.client.chat_postMessage(
+        channel=channel_id,
+        thread_ts=thread_id,
+        text="Ah, I see you uploaded a file. Give me a minute to summarize it for you."
+    )
+    reply_message_ts = slack_resp.get('message', {}).get('ts')    
+    response = summarize_file(app, body, context)
+    update_chat(app, channel_id, reply_message_ts, response)  
+
 
 # Where the magic happens
 def process_event(body, context):
