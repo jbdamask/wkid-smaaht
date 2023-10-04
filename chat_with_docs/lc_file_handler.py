@@ -72,6 +72,11 @@ class Handler(abc.ABC):
             f.write(response.content)
         return filepath
 
+    # You slob. Clean up after yourself!
+    def delete_local_file(self, filepath):
+        if os.path.isfile(filepath):
+            os.remove(filepath)
+             
 
 class PandasWrapperHandler(Handler):
     def handle(self):
@@ -117,6 +122,7 @@ class DOCXHandler(Handler):
         filename = self.download_local_file(url, headers)
         loader = UnstructuredWordDocumentLoader(filename, headers=headers)
         pages = loader.load_and_split()
+        self.delete_local_file(filename)
         return pages
 
 # class ExcelHandler(Handler):
@@ -167,6 +173,7 @@ class TxtHandler(Handler):
         filename = self.download_local_file(url, headers)
         loader = UnstructuredFileLoader(filename, headers=headers)
         pages = loader.load_and_split()
+        self.delete_local_file(filename)        
         return pages    
     
     # def read_file(self, url, SLACK_BOT_TOKEN):
