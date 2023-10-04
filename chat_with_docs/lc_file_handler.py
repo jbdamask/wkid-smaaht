@@ -2,7 +2,7 @@ import langchain
 from langchain.llms import OpenAI
 from langchain.chat_models import ChatOpenAI
 from langchain.agents import AgentType, load_tools
-from langchain.document_loaders import PyPDFLoader, OnlinePDFLoader
+from langchain.document_loaders import PyPDFLoader, OnlinePDFLoader, UnstructuredWordDocumentLoader
 # from custom_agent_types import CustomAgentType
 import pandas as pd
 import abc
@@ -54,6 +54,28 @@ class Handler(abc.ABC):
         return result
         # return self.agent(question) # This invokes the default __call__ method
 
+    def download_local_file(self, url, headers, file_type, directory='downloads'):
+        import requests
+        import uuid        
+        response = requests.get(url, headers=headers)
+
+        # Generate a random UUID
+        file_uuid = uuid.uuid4()
+        # Convert the UUID to a string and append the .docx extension
+        filename = str(file_uuid) + '.' + file_type
+        
+        # Check if the directory exists and create it if it doesn't
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        filepath = os.path.join(directory, filename)
+
+        with open(filepath, 'wb') as f:
+            f.write(response.content)
+        
+        return filepath
+
+
 class PandasWrapperHandler(Handler):
     def handle(self):
         return f"Wrapping {self.file} in Pandas dataframe"
@@ -92,8 +114,13 @@ class DOCXHandler(Handler):
     def handle(self):
         return f"Handling DOCX file: {self.file}"
     
-    def read_file(self):
-        pass    
+    def read_file(self, url, SLACK_BOT_TOKEN):
+        headers = {'Authorization': f'Bearer {SLACK_BOT_TOKEN}'}
+        logger.info(url)
+        filename = self.download_local_file(url, headers, 'docx')
+        loader = UnstructuredWordDocumentLoader(filename, headers=headers)
+        pages = loader.load_and_split()
+        return pages
 
 # class ExcelHandler(Handler):
 class ExcelHandler(PandasWrapperHandler):
@@ -163,6 +190,7 @@ class HandlerFactory:
     handlers = {
         "pdf": PDFHandler, 
         "docx": DOCXHandler, 
+        "doc": DOCXHandler, 
         "xlsx": ExcelHandler, 
         "txt": TxtHandler,
         "json": JSONHandler,
