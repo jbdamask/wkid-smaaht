@@ -8,7 +8,7 @@ import openai
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from pprint import pprint
-from localsrc.logger_config import get_logger
+from src.logger_config import get_logger
 import json
 
 from localsrc.utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,

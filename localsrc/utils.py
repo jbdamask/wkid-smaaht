@@ -21,9 +21,9 @@ from trafilatura.settings import use_config
 from cachetools import LRUCache
 from dotenv import load_dotenv, find_dotenv
 _ = load_dotenv(find_dotenv()) # read local .env file
-from localsrc.logger_config import get_logger
-from localsrc.system_prompt import SystemPrompt, FilePromptStrategy, DynamoDBPromptStrategy, S3PromptStrategy
-from localsrc.chat_manager import ChatManager
+from src.logger_config import get_logger
+from src.system_prompt import SystemPrompt, FilePromptStrategy, DynamoDBPromptStrategy, S3PromptStrategy
+from src.chat_manager import ChatManager
 from langchain.tools import DuckDuckGoSearchResults
 from langchain.agents import ConversationalChatAgent, AgentExecutor
 from langchain.chat_models import ChatOpenAI
