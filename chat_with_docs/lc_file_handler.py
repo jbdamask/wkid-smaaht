@@ -54,10 +54,14 @@ class Handler(abc.ABC):
         return result
         # return self.agent(question) # This invokes the default __call__ method
 
-    def download_local_file(self, url, headers, file_type, directory='downloads'):
+    # Not all filetypes are accessible by LangChain over the web. 
+    def download_local_file(self, url, headers, directory='downloads'):
         import requests
         import uuid        
+
+        file_type = url.split('.')[-1]
         response = requests.get(url, headers=headers)
+
 
         # Generate a random UUID
         file_uuid = uuid.uuid4()
@@ -117,7 +121,7 @@ class DOCXHandler(Handler):
     def read_file(self, url, SLACK_BOT_TOKEN):
         headers = {'Authorization': f'Bearer {SLACK_BOT_TOKEN}'}
         logger.info(url)
-        filename = self.download_local_file(url, headers, 'docx')
+        filename = self.download_local_file(url, headers)
         loader = UnstructuredWordDocumentLoader(filename, headers=headers)
         pages = loader.load_and_split()
         return pages
@@ -190,7 +194,6 @@ class HandlerFactory:
     handlers = {
         "pdf": PDFHandler, 
         "docx": DOCXHandler, 
-        "doc": DOCXHandler, 
         "xlsx": ExcelHandler, 
         "txt": TxtHandler,
         "json": JSONHandler,
