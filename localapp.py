@@ -181,6 +181,22 @@ def deal_with_file(body, context, logger):
 
     update_chat(app, channel_id, reply_message_ts, response)  
 
+def chat_with_file(body, context, logger):
+    channel_id=body['event']['channel']
+    thread_id=body['event']['ts']
+    slack_resp = app.client.chat_postMessage(
+        channel=channel_id,
+        thread_ts=thread_id,
+        text="Ah, I see you uploaded a file. I'll load it so you can ask questions."
+    )
+    reply_message_ts = slack_resp.get('message', {}).get('ts')    
+    response = ''
+    try:
+        response = chat_with_doc(app, body, context)
+    except ValueError as e:
+        response = f"Sorry, I can't process files of type: {e}"
+
+    update_chat(app, channel_id, reply_message_ts, response) 
 
 # Where the magic happens
 def process_event(body, context):

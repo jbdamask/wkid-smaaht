@@ -109,8 +109,8 @@ class PDFHandler(Handler):
         headers = {'Authorization': f'Bearer {SLACK_BOT_TOKEN}'}
         logger.info(url)
         loader = OnlinePDFLoader(url, headers=headers)
-        pages = loader.load_and_split()
-        return pages
+        documents = loader.load_and_split()
+        return documents
 
 class DOCXHandler(Handler):
     def handle(self):
@@ -121,9 +121,9 @@ class DOCXHandler(Handler):
         logger.info(url)
         filename = self.download_local_file(url, headers)
         loader = UnstructuredWordDocumentLoader(filename, headers=headers)
-        pages = loader.load_and_split()
+        documents = loader.load_and_split()
         self.delete_local_file(filename)
-        return pages
+        return documents
 
 # class ExcelHandler(Handler):
 class ExcelHandler(PandasWrapperHandler):
@@ -172,9 +172,9 @@ class TxtHandler(Handler):
         logger.info(url)
         filename = self.download_local_file(url, headers)
         loader = UnstructuredFileLoader(filename, headers=headers)
-        pages = loader.load_and_split()
+        documents = loader.load_and_split()
         self.delete_local_file(filename)        
-        return pages    
+        return documents    
     
     # def read_file(self, url, SLACK_BOT_TOKEN):
     #     file_content = self._read_file_content(url, SLACK_BOT_TOKEN)

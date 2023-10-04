@@ -1,6 +1,5 @@
-from llama_index import VectorStoreIndex, SimpleDirectoryReader
 from src.logger_config import get_logger
-
+import chromadb
 
 # Configure logging
 logger = get_logger(__name__)
