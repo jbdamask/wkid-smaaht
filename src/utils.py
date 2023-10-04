@@ -47,7 +47,8 @@ newconfig.set("DEFAULT", "EXTRACTION_TIMEOUT", "0")
 DEBUG = False
 models = {
     "gpt-3.5-turbo": {"max_token": 4096, "description": "Most capable GPT-3.5 model and optimized for chat at 1/10th the cost of text-davinci-003. Will be updated with our latest model iteration 2 weeks after it is released."},
-    "gpt-4": {"max_token": 8192, "description": "More capable than any GPT-3.5 model, able to do more complex tasks, and optimized for chat. Will be updated with our latest model iteration 2 weeks after it is released."}
+    "gpt-4": {"max_token": 8192, "description": "More capable than any GPT-3.5 model, able to do more complex tasks, and optimized for chat. Will be updated with our latest model iteration 2 weeks after it is released."},
+    "gpt-3.5-turbo-16k": {"max_token": 16385, "description": "Same capabilities as the standard gpt-3.5-turbo model but with 4 times the context."}
 }
 MODEL = "gpt-4"
 MAX_TOKENS = models[MODEL]["max_token"]
