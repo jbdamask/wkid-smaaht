@@ -18,7 +18,7 @@ from localsrc.utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,
                    num_tokens_from_messages, process_conversation_history,
                    update_chat, moderate_messages, get_completion_from_messages,
                    prepare_payload, get_conversation_history, process_message, search_and_chat,
-                   summarize_web_page, summarize_file)  # added imports here
+                   summarize_web_page, summarize_file, register_doc)  # added imports here
 
 # Configure logging
 logger = get_logger(__name__)
@@ -135,14 +135,20 @@ def deal_with_file(body, context, logger):
     slack_resp = app.client.chat_postMessage(
         channel=channel_id,
         thread_ts=thread_id,
-        text="Ah, I see you uploaded a file. Give me a minute to summarize it for you."
+        # text="Ah, I see you uploaded a file. Give me a minute to summarize it for you."
+        text="Registering doc..."
     )
-    reply_message_ts = slack_resp.get('message', {}).get('ts')    
-    response = ''
-    try:
-        response = summarize_file(app, body, context)
-    except ValueError as e:
-        response = f"Sorry, I can't process files of type: {e}"
+    reply_message_ts = slack_resp.get('message', {}).get('ts')
+    filepath = body['event']['files'][0]['name']
+    register_doc(filepath, channel_id, thread_id)
+
+    response = "What would you like to do with this? You can ask me to summarize it (:summarize) or ask questions (:qa)"
+
+    # response = ''
+    # try:
+    #     response = summarize_file(app, body, context)
+    # except ValueError as e:
+    #     response = f"Sorry, I can't process files of type: {e}"
 
     update_chat(app, channel_id, reply_message_ts, response)  
 

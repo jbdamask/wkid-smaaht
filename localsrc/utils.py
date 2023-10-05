@@ -34,7 +34,7 @@ from langchain.document_loaders import WebBaseLoader
 from langchain.chains.summarize import load_summarize_chain
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.docstore.document import Document
-from chat_with_docs.lc_file_handler import create_file_handler
+from chat_with_docs.lc_file_handler import create_file_handler, FileRegistry
 # from chat_with_docs.chat_with_pdf import ChatWithDoc
 from chat_with_docs.prompt import CONCISE_SUMMARY_PROMPT
 
@@ -413,7 +413,10 @@ def summarize_file(app,body, context):
     return result
 
 
-
-# def register_doc(app, body, context):
-#     handler = create_file_handler(body['event']['files'][0]['name'], OPENAI_API_KEY)
-#     fileHandlerCache[handler] =
+def register_doc(filepath, channel_id, thread_id):
+    handler = create_file_handler(filepath, OPENAI_API_KEY)
+    fr = FileRegistry(handler)
+    fr.add_channel(channel_id)
+    fr.add_thread(channel_id, thread_id)
+    fileHandlerCache[handler] = fr
+    
