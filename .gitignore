@@ -1,7 +1,10 @@
 .env
 .venv
 localsrc/__pycache__
+chat_manager/__pycache__
 __pycache__/
 settings.ini
 .DS_Store
 .vscode/
+localsrc/data/
+downloads/

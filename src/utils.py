@@ -19,9 +19,9 @@ import tiktoken
 from trafilatura import extract, fetch_url
 from trafilatura.settings import use_config
 from cachetools import LRUCache
-from logger_config import get_logger
-from system_prompt import SystemPrompt, FilePromptStrategy, DynamoDBPromptStrategy, S3PromptStrategy
-from chat_manager import ChatManager
+from src.logger_config import get_logger
+from src.system_prompt import SystemPrompt, FilePromptStrategy, DynamoDBPromptStrategy, S3PromptStrategy
+from src.chat_manager import ChatManager
 from langchain.tools import DuckDuckGoSearchResults
 from langchain.agents import ConversationalChatAgent, AgentExecutor
 from langchain.chat_models import ChatOpenAI
@@ -30,6 +30,10 @@ from langchain.callbacks import StdOutCallbackHandler
 from langchain.memory.chat_message_histories import ChatMessageHistory
 from langchain.document_loaders import WebBaseLoader
 from langchain.chains.summarize import load_summarize_chain
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.docstore.document import Document
+from chat_with_docs.lc_file_handler import create_file_handler
+from chat_with_docs.prompt import CONCISE_SUMMARY_PROMPT
 
 # Configure logging
 logger = get_logger(__name__)
@@ -43,7 +47,8 @@ newconfig.set("DEFAULT", "EXTRACTION_TIMEOUT", "0")
 DEBUG = False
 models = {
     "gpt-3.5-turbo": {"max_token": 4096, "description": "Most capable GPT-3.5 model and optimized for chat at 1/10th the cost of text-davinci-003. Will be updated with our latest model iteration 2 weeks after it is released."},
-    "gpt-4": {"max_token": 8192, "description": "More capable than any GPT-3.5 model, able to do more complex tasks, and optimized for chat. Will be updated with our latest model iteration 2 weeks after it is released."}
+    "gpt-4": {"max_token": 8192, "description": "More capable than any GPT-3.5 model, able to do more complex tasks, and optimized for chat. Will be updated with our latest model iteration 2 weeks after it is released."},
+    "gpt-3.5-turbo-16k": {"max_token": 16385, "description": "Same capabilities as the standard gpt-3.5-turbo model but with 4 times the context."}
 }
 MODEL = "gpt-4"
 MAX_TOKENS = models[MODEL]["max_token"]
@@ -350,9 +355,7 @@ def copy_history_to_langchain(message):
 
     return msgs
 
-
 def search_and_chat(messages, text):
-    # msgs = ChatMessageHistory()
     # Build LangChain memory from Slack chat history
     msgs = copy_history_to_langchain(messages)
     # I don't think i need this next line because the text message is already in the history
@@ -360,9 +363,7 @@ def search_and_chat(messages, text):
     memory = ConversationBufferMemory(
         chat_memory=msgs, return_messages=True, memory_key="chat_history", output_key="output"
     )
-    # llm = ChatOpenAI(model_name=MODEL, openai_api_key=OPENAI_API_KEY, streaming=True)
     llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k", openai_api_key=OPENAI_API_KEY, streaming=True)
-    # tools = [DuckDuckGoSearchRun(name="Search")]
     tools = [DuckDuckGoSearchResults(name="Search")]
     chat_agent = ConversationalChatAgent.from_llm_and_tools(llm=llm, tools=tools)
     executor = AgentExecutor.from_agent_and_tools(
@@ -377,28 +378,27 @@ def search_and_chat(messages, text):
     response = executor(text, callbacks=[st_cb])
     return response["output"]
 
-def summarize_web_page(url):
-    loader = WebBaseLoader(url)
-    # doc = loader.load()
-    docs = loader.load_and_split()
+
+def summarize_chain(docs):
     llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k", openai_api_key=OPENAI_API_KEY)
-    from langchain.prompts import PromptTemplate
-    prompt_template = """Write a concise, comprehensive summary of the following:
-
-
-    "{text}"
-
-
-    CONCISE SUMMARY:"""
-    PROMPT = PromptTemplate(template=prompt_template, input_variables=["text"])    
-
-    # Split text
-    # text_splitter = RecursiveCharacterTextSplitter()
-    # texts = text_splitter.split_text(doc)
-    # docs = [Document(page_content=t) for t in texts]
-
-    # chain = load_summarize_chain(llm, chain_type="stuff", prompt=PROMPT)
+    PROMPT = CONCISE_SUMMARY_PROMPT
     chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=PROMPT, combine_prompt=PROMPT)
     result = chain.run(docs)
     return result
+
+def summarize_web_page(url):
+    loader = WebBaseLoader(url)
+    loader = loader
+    docs = loader.load_and_split()
+    return summarize_chain(docs)
     
+# Method to handle file uploads
+def summarize_file(app,body, context):
+    logger.info(f"File: {body['event']['files'][0]['name']}")
+    handler = create_file_handler(body['event']['files'][0]['name'], OPENAI_API_KEY)
+    file_id = body['event']['files'][0]['id']
+    result = app.client.files_info(file=file_id)    
+    file_info = result['file']    
+    docs = handler.read_file(file_info['url_private'], SLACK_BOT_TOKEN)
+    result = summarize_chain(docs)
+    return result

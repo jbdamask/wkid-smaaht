@@ -8,17 +8,18 @@ import openai
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from pprint import pprint
-from logger_config import get_logger
+from src.logger_config import get_logger
 import json
 
-from utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,
+# To test locally, change the next line from src.utils to localsrc.utils
+from src.utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,
                    SLACK_APP_TOKEN, SLACK_BOT_TOKEN, WAIT_MESSAGE,
                    MAX_TOKENS, DEBUG, prompt, 
                    get_slack_thread, set_prompt_for_user_and_channel, generate_image,
                    num_tokens_from_messages, process_conversation_history,
                    update_chat, moderate_messages, get_completion_from_messages,
                    prepare_payload, get_conversation_history, process_message, search_and_chat,
-                   summarize_web_page)  # added imports here
+                   summarize_web_page, summarize_file)  # added imports here
 
 # Configure logging
 logger = get_logger(__name__)
@@ -60,23 +61,16 @@ def make_image(ack, respond, command):
 # Listens to incoming messages that contain "hello"
 # To learn available listener arguments,
 # visit https://slack.dev/bolt-python/api-docs/slack_bolt/kwargs_injection/args.html
-@app.message("hello")
-def message_hello(message, say):
-    say(f"Hey there <@{message.get('user')}>!")
-
-# Checks to see if a post is from the W'kid Smaaht bot. 
-# If so, we don't process
-def is_it_bot(body):
-    if 'message' in body:
-        b = body.get('message[bot_id]') 
-        if b is not None:
-            return True
-    else:
-        return False
+# @app.message("hello")
+# def message_hello(message, say):
+#     say(f"Hey there <@{message.get('user')}>!")
 
 # Process direct messages
 @app.event("message")
 def handle_message_events(body, context, logger):
+    if is_it_bot(body):
+        return
+    # event_router(body, context)
     # logger.debug(body)
     event = body.get('event')
     if event is None:
@@ -104,13 +98,89 @@ def handle_message_events(body, context, logger):
     else:
         return
     logger.debug("Processing DM message")
-    process_event(body, context)
+    # Check if the event has a subtype
+    if 'subtype' in body['event']:
+        # If the subtype is 'file_share', do something
+        if body['event']['subtype'] == 'file_share':
+            deal_with_file(body, context, logger)
+    else:
+        process_event(body, context)
+
+# # Listens for DM file uploads
+# @app.event({"type": "message", "subtype": "file_share"})
+# def handle_file(body, context, logger):
+#     event_router(body, context)
+#     # logger.info(body)
+#     # print(create_file_handler(body['event']['files'][0]['name']))
+#     # process_chat(body, context)
+#     if not is_it_bot():
+#         # global CNT
+#         # logger.info(f"handle_file event: {CNT}")
+#         # CNT += 1
+#         deal_with_file(body, context, logger)
 
 # Process app mention events
 @app.event("app_mention")
 def command_handler(body, context):
-    # logger.debug(body)
-    process_event(body, context)
+    # event_router(body, context)
+    if 'subtype' in body['event']:
+        # If the subtype is 'file_share', do something
+        if body['event']['subtype'] == 'file_share':
+            deal_with_file(body, context, logger)
+    else:
+        process_event(body, context)
+
+# Checks to see if a post is from the W'kid Smaaht bot. 
+# If so, we don't process
+def is_it_bot(body):
+    if 'message' in body:
+        b = body.get('message[bot_id]') 
+        if b is not None:
+            return True
+    else:
+        return False
+
+# Conditional logic to handle Slack events
+# def event_router(body, context):
+#     event = body.get('event', {})
+#     text = event.get('text', '')
+#     thread_id=event.get('ts')
+#     channel_id = event.get('channel', '')
+#     subtype = event.get('subtype')
+
+#     if event.get('type') == 'app_mention':
+#         # Your code to handle app mentions goes here
+#         slack_resp = app.client.chat_postMessage(
+#             channel=channel_id,
+#             thread_ts=thread_id,
+#             text=f"Received App mention event of type {event['type']} in {channel_id} SubType: {subtype}"
+#         )
+#     elif channel_id.startswith('D') and not text.startswith('<@'):
+#         # Your code to handle non-mention DMs goes here
+#         slack_resp = app.client.chat_postMessage(
+#             channel=channel_id,
+#             thread_ts=thread_id,
+#             text=f"Received DM event of type {event['type']} in {channel_id} SubType: {subtype}"
+#         )
+
+# Processes file upload
+def deal_with_file(body, context, logger):
+    channel_id=body['event']['channel']
+    thread_id=body['event']['ts']
+    slack_resp = app.client.chat_postMessage(
+        channel=channel_id,
+        thread_ts=thread_id,
+        text="Ah, I see you uploaded a file. Give me a minute to summarize it for you."
+    )
+    reply_message_ts = slack_resp.get('message', {}).get('ts')    
+    response = ''
+    try:
+        response = summarize_file(app, body, context)
+    except ValueError as e:
+        response = f"Sorry, I can't process files of type: {e}"
+
+    update_chat(app, channel_id, reply_message_ts, response)  
+
 
 # Where the magic happens
 def process_event(body, context):
@@ -193,19 +263,17 @@ def process_event(body, context):
             )
         else:
             update_chat(app, channel_id, reply_message_ts, "You need to provide some text for me to generate an image. For example, A cat eating ice cream.")
-        # return
     elif command_text.startswith(":snc "):
         update_chat(app, channel_id, reply_message_ts, "Let me do a bit of research and I'll get right back to you.")
         text = command_text.replace(":snc ", "").strip()
         response = search_and_chat(messages, text)
         update_chat(app, channel_id, reply_message_ts, response)
-        # return
     elif command_text.startswith(":websum "):
         update_chat(app, channel_id, reply_message_ts, "I'll try to summarize that page. This may take a minute (literally).")
         url = command_text.replace(":websum ", "").split("|")[0].replace("<","").replace(">","").strip()
+        logger.info("Dude! WTF??" + url)
         response = summarize_web_page(url)
-        update_chat(app, channel_id, reply_message_ts, response)
-        # return
+        update_chat(app, channel_id, reply_message_ts, response)      
     else:
         try:
             openai_response = get_completion_from_messages(messages)

@@ -15,7 +15,12 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Add the src directory and gpt4_system_prompts contents into the container at /app
-COPY src/ gpt4_system_prompts/ /app/
+# COPY src/ gpt4_system_prompts/ chat_with_docs/ /app/
+
+COPY src/ /app/src/
+COPY gpt4_system_prompts/ /app/gpt4_system_prompts/
+COPY chat_with_docs/ /app/chat_with_docs/
+COPY wkid_smaaht.py /app/
 
 # Set PYTHONUNBUFFERED environment variable
 ENV PYTHONUNBUFFERED=1
