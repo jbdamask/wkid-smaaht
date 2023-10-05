@@ -111,6 +111,8 @@ def handle_message_events(body, context, logger):
 @app.event("app_mention")
 def command_handler(body, context):
     # event_router(body, context)
+    # THIS NEVER GETS CALLED FOR FILE UPLOAD. 
+    # IN A CHANNEL, IF AN APP IS MENTIONED ALONG WITH A FILE UPLOAD, THE EVENT HAS NO SUBTYPE
     if 'subtype' in body['event']:
         # If the subtype is 'file_share', do something
         if body['event']['subtype'] == 'file_share':
