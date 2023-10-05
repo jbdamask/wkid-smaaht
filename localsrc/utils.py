@@ -79,6 +79,7 @@ SYSTEM_PROMPT = prompt.get_prompt('default-system-prompt.txt')
 # This will be populated with ChatManager objects and keyed 
 # by Slack user_id
 cache = LRUCache(maxsize=100)
+fileHandlerCache = LRUCache(maxsize=100)
 
 # Store the GPT4 systemp prompt for the user in the particular channel
 def set_prompt_for_user_and_channel(user_id, channel_id, prompt_key):
@@ -393,9 +394,11 @@ def summarize_chain(docs):
     return result
 
 def summarize_web_page(url):
-    loader = WebBaseLoader(url)
-    loader = loader
-    docs = loader.load_and_split()
+    # loader = WebBaseLoader(url)
+    # loader = loader
+    # docs = loader.load_and_split()
+    handler = create_file_handler(url, OPENAI_API_KEY, webpage=True)
+    docs = handler.read_file(url)
     return summarize_chain(docs)
     
 # Method to handle file uploads
@@ -409,3 +412,8 @@ def summarize_file(app,body, context):
     result = summarize_chain(docs)
     return result
 
+
+
+# def register_doc(app, body, context):
+#     handler = create_file_handler(body['event']['files'][0]['name'], OPENAI_API_KEY)
+#     fileHandlerCache[handler] =

@@ -2,7 +2,7 @@ import langchain
 from langchain.llms import OpenAI
 from langchain.chat_models import ChatOpenAI
 from langchain.agents import AgentType, load_tools
-from langchain.document_loaders import PyPDFLoader, OnlinePDFLoader, UnstructuredWordDocumentLoader, UnstructuredFileLoader
+from langchain.document_loaders import PyPDFLoader, OnlinePDFLoader, UnstructuredWordDocumentLoader, UnstructuredFileLoader, WebBaseLoader
 # from custom_agent_types import CustomAgentType
 import pandas as pd
 import abc
@@ -198,6 +198,19 @@ class MarkdownHandler(Handler):
     def read_file(self):
         pass    
 
+class WebHandler(Handler):
+    def handle(self):
+        return f"Handling web page: {self.file}"
+    
+    def read_file(self, url):
+        logger.info(url)
+        loader = WebBaseLoader(url)
+        documents = loader.load_and_split()  
+        return documents    
+    
+    # def read_file(self, url, SLACK_BOT_TOKEN):
+    #     file_content = self._read_file_content(url, SLACK_BOT_TOKEN)
+
 class HandlerFactory:
     handlers = {
         "pdf": PDFHandler, 
@@ -217,7 +230,45 @@ class HandlerFactory:
             raise ValueError(f"No handler for file type {file_type}")
         return Handler(file, open_api_key)
 
-def create_file_handler(file, openai_api_key):
-    handler = HandlerFactory.get_handler(file, openai_api_key)
+def create_file_handler(file, openai_api_key, webpage=False):
+    if webpage:
+        handler = WebHandler(file, openai_api_key)
+    else:
+        handler = HandlerFactory.get_handler(file, openai_api_key)
     return handler
     # return handler.handle(file)
+
+
+# Keeps Handlers organized with their channel/thread
+class FileRegistry:
+    def __init__(self, Handler):
+        self.handler = Handler
+        self.channels = {}
+
+    # Handler methods
+    def get_handler(self):
+        return self.handler
+
+    def set_handler(self, handler):
+        self.handler = handler
+
+    # Channel methods
+    def get_channels(self):
+        return self.channels
+
+    def add_channel(self, channel_id):
+        self.channels[channel_id] = []
+
+    # Thread methods
+    def get_threads(self, channel_id):
+        return self.channels.get(channel_id, None)
+
+    def add_thread(self, channel_id, thread_id):
+        if channel_id in self.channels:
+            self.channels[channel_id].append(thread_id)
+
+    def get_thread(self, channel_id, thread_id):
+        if channel_id in self.channels:
+            threads = self.channels[channel_id]
+            if thread_id in threads:
+                return thread_id

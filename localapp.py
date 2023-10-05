@@ -102,22 +102,10 @@ def handle_message_events(body, context, logger):
     if 'subtype' in body['event']:
         # If the subtype is 'file_share', do something
         if body['event']['subtype'] == 'file_share':
+            ## TODO: CHANGE THIS TO REGISTER FILE AND WAIT FOR USER COMMAND TO LOAD
             deal_with_file(body, context, logger)
     else:
         process_event(body, context)
-
-# # Listens for DM file uploads
-# @app.event({"type": "message", "subtype": "file_share"})
-# def handle_file(body, context, logger):
-#     event_router(body, context)
-#     # logger.info(body)
-#     # print(create_file_handler(body['event']['files'][0]['name']))
-#     # process_chat(body, context)
-#     if not is_it_bot():
-#         # global CNT
-#         # logger.info(f"handle_file event: {CNT}")
-#         # CNT += 1
-#         deal_with_file(body, context, logger)
 
 # Process app mention events
 @app.event("app_mention")
@@ -140,29 +128,6 @@ def is_it_bot(body):
     else:
         return False
 
-# Conditional logic to handle Slack events
-# def event_router(body, context):
-#     event = body.get('event', {})
-#     text = event.get('text', '')
-#     thread_id=event.get('ts')
-#     channel_id = event.get('channel', '')
-#     subtype = event.get('subtype')
-
-#     if event.get('type') == 'app_mention':
-#         # Your code to handle app mentions goes here
-#         slack_resp = app.client.chat_postMessage(
-#             channel=channel_id,
-#             thread_ts=thread_id,
-#             text=f"Received App mention event of type {event['type']} in {channel_id} SubType: {subtype}"
-#         )
-#     elif channel_id.startswith('D') and not text.startswith('<@'):
-#         # Your code to handle non-mention DMs goes here
-#         slack_resp = app.client.chat_postMessage(
-#             channel=channel_id,
-#             thread_ts=thread_id,
-#             text=f"Received DM event of type {event['type']} in {channel_id} SubType: {subtype}"
-#         )
-
 # Processes file upload
 def deal_with_file(body, context, logger):
     channel_id=body['event']['channel']
@@ -181,20 +146,20 @@ def deal_with_file(body, context, logger):
 
     update_chat(app, channel_id, reply_message_ts, response)  
 
-def chat_with_file(body, context, logger):
-    channel_id=body['event']['channel']
-    thread_id=body['event']['ts']
-    slack_resp = app.client.chat_postMessage(
-        channel=channel_id,
-        thread_ts=thread_id,
-        text="Ah, I see you uploaded a file. I'll load it so you can ask questions."
-    )
-    reply_message_ts = slack_resp.get('message', {}).get('ts')    
-    response = ''
-    try:
-        response = chat_with_doc(app, body, context)
-    except ValueError as e:
-        response = f"Sorry, I can't process files of type: {e}"
+# def chat_with_file(body, context, logger):
+#     channel_id=body['event']['channel']
+#     thread_id=body['event']['ts']
+#     slack_resp = app.client.chat_postMessage(
+#         channel=channel_id,
+#         thread_ts=thread_id,
+#         text="Ah, I see you uploaded a file. I'll load it so you can ask questions."
+#     )
+#     reply_message_ts = slack_resp.get('message', {}).get('ts')    
+#     response = ''
+#     try:
+#         response = chat_with_doc(app, body, context)
+#     except ValueError as e:
+#         response = f"Sorry, I can't process files of type: {e}"
 
     update_chat(app, channel_id, reply_message_ts, response) 
 
