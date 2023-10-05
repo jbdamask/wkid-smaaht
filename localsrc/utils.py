@@ -249,8 +249,8 @@ def get_conversation_history(app, channel_id, thread_ts):
         ts=thread_ts,
         inclusive=True
     )
-    logger.debug(type(history))
-    logger.debug(history)
+    # logger.debug(type(history))
+    # logger.debug(history)
     return history
 
 # This builds the message object, including any previous interactions in the thread
@@ -295,10 +295,12 @@ def process_message(message, bot_user_id):
 
     message_text = message['text']
     role = "assistant" if message['user'] == bot_user_id else "user"
-    if role == "user":
-        url_list = extract_url_list(message_text)
-        if url_list:
-            message_text = augment_user_message(message_text, url_list)
+
+    # Removing this. It creates problems with the LLM context window
+    # if role == "user":
+    #     url_list = extract_url_list(message_text)
+    #     if url_list:
+    #         message_text = augment_user_message(message_text, url_list)
 
     logger.debug(f"role: {role}")
     logger.debug(f"augmented user message: {message_text}")
@@ -420,3 +422,5 @@ def register_doc(filepath, channel_id, thread_id):
     fr.add_thread(channel_id, thread_id)
     fileHandlerCache[handler] = fr
     
+def list_files_in_thread(channel_id, thread_id):
+    pass
