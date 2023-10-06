@@ -125,8 +125,9 @@ def is_it_bot(body):
 
 # Processes file upload
 def deal_with_file(body, context, logger):
-    channel_id=body['event']['channel']
-    thread_id=body['event']['thread_ts']
+    event = body.get('event')
+    channel_id=event.get('channel')
+    thread_id = event.get('thread_ts') if event.get('thread_ts') is not None else event.get('ts')
     slack_resp = app.client.chat_postMessage(
         channel=channel_id,
         thread_ts=thread_id,
