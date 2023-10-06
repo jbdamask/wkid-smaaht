@@ -18,7 +18,7 @@ from localsrc.utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,
                    num_tokens_from_messages, process_conversation_history,
                    update_chat, moderate_messages, get_completion_from_messages,
                    prepare_payload, get_conversation_history, process_message, search_and_chat,
-                   summarize_web_page, summarize_file, register_doc, list_files_in_thread)  # added imports here
+                   summarize_web_page, summarize_file, register_file, doc_q_and_a)  # added imports here
 
 # Configure logging
 logger = get_logger(__name__)
@@ -135,9 +135,8 @@ def deal_with_file(body, context, logger):
     )
     reply_message_ts = slack_resp.get('message', {}).get('ts')
     filepath = body['event']['files'][0]['name']
-    register_doc(filepath, channel_id, thread_id)
-
-    response = "What would you like to do with this? You can ask me to summarize it (:summarize) or ask questions (:qa)"
+    register_file(body['event']['files'][0], channel_id, thread_id)
+    response = "What would you like to do with this? You can ask me to summarize it or ask questions"
 
     # response = ''
     # try:
@@ -281,12 +280,14 @@ def process_event(body, context):
             response = json.dumps({str(key): value for key, value in chat_dict.items()})
         update_chat(app, channel_id, reply_message_ts, response)
     elif command_text.startswith(":summarize"):
-        slack_resp = app.client.chat_postMessage(
-            channel=channel_id,
-            thread_ts=thread_ts,
-            text="Give me a minute to summarize this for you."
-        )
-        reply_message_ts = slack_resp.get('message', {}).get('ts')  
+        # slack_resp = app.client.chat_postMessage(
+        #     channel=channel_id,
+        #     # thread_ts=thread_ts,
+        #     thread_ts = reply_message_ts,
+        #     text="Give me a minute to summarize this for you."
+        # )
+        update_chat(app, channel_id, reply_message_ts, "Give me a minute to summarize this for you.")
+        # reply_message_ts = slack_resp.get('message', {}).get('ts')  
         files = [message.get('files') for message in conversation_history.data.get('messages') if 'files' in message]
         # Get the most recent file
         most_recent_file = files[-1] if files else None
@@ -294,6 +295,26 @@ def process_event(body, context):
             response = "No files found in this thread"
         else:
             response = summarize_file(most_recent_file[0])
+        update_chat(app, channel_id, reply_message_ts, response)
+    elif command_text.startswith(":qa "):
+        question = command_text.replace(":qa ", "").strip()
+        update_chat(app, channel_id, reply_message_ts, "Asking questions is a great way to learn! Give me a sec...")
+        # slack_resp = app.client.chat_postMessage(
+        #     channel=channel_id,
+        #     # thread_ts=thread_ts,
+        #     tread_ts = reply_message_ts,
+        #     text="Asking questions is a great way to learn! Give me a sec..."
+        # )
+        # reply_message_ts = slack_resp.get('message', {}).get('ts')
+        files = [message.get('files') for message in conversation_history.data.get('messages') if 'files' in message]
+        # Get the most recent file
+        most_recent_file = files[-1] if files else None
+        if not most_recent_file:
+            response = "No files found in this thread"
+        else:
+            file = most_recent_file[0]
+            response = doc_q_and_a(file.get('name'), channel_id, thread_ts, question)  
+
         update_chat(app, channel_id, reply_message_ts, response)
     else:
         try:

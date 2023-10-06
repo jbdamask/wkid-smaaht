@@ -238,37 +238,66 @@ def create_file_handler(file, openai_api_key, webpage=False):
     return handler
     # return handler.handle(file)
 
+class FileRegistry:
+    def __init__(self):
+        self.registry = {}
+
+    def add_file(self, filename, channel_id, thread_ts, file_id, private_url, handler, chatWithDoc):
+        if filename not in self.registry:
+            self.registry[filename] = {}
+        key = (channel_id, thread_ts)
+        if key not in self.registry[filename]:
+            self.registry[filename][key] = []
+        self.registry[filename][key].append(
+                {'file_id': file_id, 
+                 'private_url': private_url, 
+                 'handler': handler, 
+                 'chat': chatWithDoc})
+
+    def get_files(self, filename, channel_id, thread_ts):
+        key = (channel_id, thread_ts)
+        if filename in self.registry and key in self.registry[filename]:
+            return self.registry[filename][key]
+        else:
+            return None
+
+    def list_files(self, filename):
+        if filename in self.registry:
+            return [file for sublist in self.registry[filename].values() for file in sublist]
+        else:
+            return None
+
 
 # Keeps Handlers organized with their channel/thread
-class FileRegistry:
-    def __init__(self, Handler):
-        self.handler = Handler
-        self.channels = {}
+# class FileRegistry:
+#     def __init__(self, Handler):
+#         self.handler = Handler
+#         self.channels = {}
 
-    # Handler methods
-    def get_handler(self):
-        return self.handler
+#     # Handler methods
+#     def get_handler(self):
+#         return self.handler
 
-    def set_handler(self, handler):
-        self.handler = handler
+#     def set_handler(self, handler):
+#         self.handler = handler
 
-    # Channel methods
-    def get_channels(self):
-        return self.channels
+#     # Channel methods
+#     def get_channels(self):
+#         return self.channels
 
-    def add_channel(self, channel_id):
-        self.channels[channel_id] = []
+#     def add_channel(self, channel_id):
+#         self.channels[channel_id] = []
 
-    # Thread methods
-    def get_threads(self, channel_id):
-        return self.channels.get(channel_id, None)
+#     # Thread methods
+#     def get_threads(self, channel_id):
+#         return self.channels.get(channel_id, None)
 
-    def add_thread(self, channel_id, thread_id):
-        if channel_id in self.channels:
-            self.channels[channel_id].append(thread_id)
+#     def add_thread(self, channel_id, thread_id):
+#         if channel_id in self.channels:
+#             self.channels[channel_id].append(thread_id)
 
-    def get_thread(self, channel_id, thread_id):
-        if channel_id in self.channels:
-            threads = self.channels[channel_id]
-            if thread_id in threads:
-                return thread_id
+#     def get_thread(self, channel_id, thread_id):
+#         if channel_id in self.channels:
+#             threads = self.channels[channel_id]
+#             if thread_id in threads:
+#                 return thread_id

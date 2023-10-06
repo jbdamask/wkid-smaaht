@@ -26,16 +26,20 @@ from src.system_prompt import SystemPrompt, FilePromptStrategy, DynamoDBPromptSt
 from src.chat_manager import ChatManager
 from langchain.tools import DuckDuckGoSearchResults
 from langchain.agents import ConversationalChatAgent, AgentExecutor
+from langchain.agents.agent_toolkits import create_conversational_retrieval_agent
+from langchain.agents.agent_toolkits import create_retriever_tool
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.callbacks import StdOutCallbackHandler
 from langchain.memory.chat_message_histories import ChatMessageHistory
 from langchain.document_loaders import WebBaseLoader
 from langchain.chains.summarize import load_summarize_chain
+from langchain.chains import ConversationalRetrievalChain, RetrievalQA
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.docstore.document import Document
+from langchain.vectorstores.base import VectorStoreRetriever
 from chat_with_docs.lc_file_handler import create_file_handler, FileRegistry
-# from chat_with_docs.chat_with_pdf import ChatWithDoc
+from chat_with_docs.chat_with_pdf import ChatWithDoc
 from chat_with_docs.prompt import CONCISE_SUMMARY_PROMPT
 
 # Configure logging
@@ -79,7 +83,8 @@ SYSTEM_PROMPT = prompt.get_prompt('default-system-prompt.txt')
 # This will be populated with ChatManager objects and keyed 
 # by Slack user_id
 cache = LRUCache(maxsize=100)
-fileHandlerCache = LRUCache(maxsize=100)
+# fileHandlerCache = LRUCache(maxsize=100)
+fileRegistry = FileRegistry()
 
 # Store the GPT4 systemp prompt for the user in the particular channel
 def set_prompt_for_user_and_channel(user_id, channel_id, prompt_key):
@@ -423,13 +428,43 @@ def summarize_file(file):
 #     result = summarize_chain(docs)
 #     return result
 
+def register_file(file, channel_id, thread_ts):
+    handler = create_file_handler(file.get('name'), OPENAI_API_KEY)
+    docs = handler.read_file(file.get('url_private'), SLACK_BOT_TOKEN)
+    chat = ChatWithDoc(file.get('name'))
+    chat.load(docs, openai_api_key=OPENAI_API_KEY)
+    fileRegistry.add_file(file.get('name'), channel_id, thread_ts, file.get('id'), file.get('url_private'), handler, chat)
+    return
 
-def register_doc(filepath, channel_id, thread_id):
-    handler = create_file_handler(filepath, OPENAI_API_KEY)
-    fr = FileRegistry(handler)
-    fr.add_channel(channel_id)
-    fr.add_thread(channel_id, thread_id)
-    fileHandlerCache[handler] = fr
+def doc_q_and_a(file, channel_id, thread_ts, question):
+    # TODO: CLEAN THIS UP SO THAT DOC HANDLERS AND LOADS HAPPEN ONCE AND ARE REGISTERED FOR REUSE
+    # handler = create_file_handler(file.get('name'), OPENAI_API_KEY)
+    # docs = handler.read_file(file.get('url_private'), SLACK_BOT_TOKEN)
     
-def list_files_in_thread(channel_id, thread_id):
-    pass
+    llm = ChatOpenAI(temperature=0, model_name=MODEL, openai_api_key=OPENAI_API_KEY)
+    f = fileRegistry.get_files(file, channel_id, thread_ts)
+    # response_docs = f[0].get('chat').query(question)  
+    db = f[0].get('chat').db
+    retriever = VectorStoreRetriever(vectorstore=db)
+    # retriever = f[0].get('chat').db.as_retriver()
+    qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever)
+    response = qa.run(question)
+    # tool = create_retriever_tool(
+    #     retriever, 
+    #     "search_state_of_union",
+    #     "Searches and returns documents regarding the state-of-the-union."
+    # )
+    # tools = [tool]
+
+    
+    # agent_executor = create_conversational_retrieval_agent
+
+    return response
+
+# def register_doc(filepath, channel_id, thread_id):
+#     handler = create_file_handler(filepath, OPENAI_API_KEY)
+#     fr = FileRegistry(handler)
+#     fr.add_channel(channel_id)
+#     fr.add_thread(channel_id, thread_id)
+#     fileHandlerCache[handler] = fr
+    
