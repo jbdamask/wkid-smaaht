@@ -404,15 +404,24 @@ def summarize_web_page(url):
     return summarize_chain(docs)
     
 # Method to handle file uploads
-def summarize_file(app,body, context):
-    logger.info(f"File: {body['event']['files'][0]['name']}")
-    handler = create_file_handler(body['event']['files'][0]['name'], OPENAI_API_KEY)
-    file_id = body['event']['files'][0]['id']
-    result = app.client.files_info(file=file_id)    
-    file_info = result['file']    
-    docs = handler.read_file(file_info['url_private'], SLACK_BOT_TOKEN)
+def summarize_file(file):
+    logger.info(f"Summarizing File: {file}")
+    handler = create_file_handler(file.get('name'), OPENAI_API_KEY)
+    # result = app.client.files_info(file=file_id)    
+    # file_info = result['file']    
+    # docs = handler.read_file(file_info['url_private'], SLACK_BOT_TOKEN)
+    docs = handler.read_file(file.get('url_private'), SLACK_BOT_TOKEN)    
     result = summarize_chain(docs)
     return result
+# def summarize_file(app,body, context):
+#     logger.info(f"File: {body['event']['files'][0]['name']}")
+#     handler = create_file_handler(body['event']['files'][0]['name'], OPENAI_API_KEY)
+#     file_id = body['event']['files'][0]['id']
+#     result = app.client.files_info(file=file_id)    
+#     file_info = result['file']    
+#     docs = handler.read_file(file_info['url_private'], SLACK_BOT_TOKEN)
+#     result = summarize_chain(docs)
+#     return result
 
 
 def register_doc(filepath, channel_id, thread_id):

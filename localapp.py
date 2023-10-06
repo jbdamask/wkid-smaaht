@@ -216,7 +216,8 @@ def process_event(body, context):
     
     messages = process_conversation_history(conversation_history, bot_user_id, channel_id, thread_ts, user_id)
     num_tokens = num_tokens_from_messages(messages)
-
+    # TODO: CAN I CONVERT SOME OF THESE TO OPENAI FUNCTIONS?
+    # https://platform.openai.com/docs/guides/gpt/function-calling
     if command_text.startswith(":pix "):
         image_text = command_text.replace(":pix ", "").strip()
         if image_text:
@@ -254,7 +255,6 @@ def process_event(body, context):
     elif command_text.startswith(":websum "):
         update_chat(app, channel_id, reply_message_ts, "I'll try to summarize that page. This may take a minute (literally).")
         url = command_text.replace(":websum ", "").split("|")[0].replace("<","").replace(">","").strip()
-        logger.info("Dude! WTF??" + url)
         response = summarize_web_page(url)
         update_chat(app, channel_id, reply_message_ts, response)    
     elif command_text.startswith(":listfiles"):
@@ -275,7 +275,26 @@ def process_event(body, context):
                     "url_private": item['url_private']
                 })
                 id += 1
-        update_chat(app, channel_id, reply_message_ts, json.dumps({str(key): value for key, value in chat_dict.items()}))
+        if not chat_dict.get((channel_id, thread_ts), []):
+            response = "No files in this thread"
+        else:
+            response = json.dumps({str(key): value for key, value in chat_dict.items()})
+        update_chat(app, channel_id, reply_message_ts, response)
+    elif command_text.startswith(":summarize"):
+        slack_resp = app.client.chat_postMessage(
+            channel=channel_id,
+            thread_ts=thread_ts,
+            text="Give me a minute to summarize this for you."
+        )
+        reply_message_ts = slack_resp.get('message', {}).get('ts')  
+        files = [message.get('files') for message in conversation_history.data.get('messages') if 'files' in message]
+        # Get the most recent file
+        most_recent_file = files[-1] if files else None
+        if not most_recent_file:
+            response = "No files found in this thread"
+        else:
+            response = summarize_file(most_recent_file[0])
+        update_chat(app, channel_id, reply_message_ts, response)
     else:
         try:
             openai_response = get_completion_from_messages(messages)
@@ -290,6 +309,7 @@ def process_event(body, context):
             )
     logger.debug("DEBUG: end command_handler")
     
+
 def chunk_n_update(openai_response, app, channel_id, reply_message_ts):
         response_text = ""
         ii = 0
