@@ -17,7 +17,8 @@ from localsrc.utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,
                    get_slack_thread, set_prompt_for_user_and_channel, generate_image,
                    num_tokens_from_messages, process_conversation_history,
                    update_chat, moderate_messages, get_completion_from_messages,
-                   prepare_payload, get_conversation_history, process_message, search_and_chat,
+                   prepare_payload, get_conversation_history, #process_message, 
+                   search_and_chat,
                    summarize_web_page, summarize_file, register_file, doc_q_and_a)  # added imports here
 
 # Configure logging

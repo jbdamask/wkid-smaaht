@@ -1,7 +1,8 @@
 # utils.py
 # Includes various functions and plumbing code.
 # Not meant for re-use, but having this file makes it easier to read main application code
-
+from dotenv import load_dotenv, find_dotenv
+_ = load_dotenv(find_dotenv()) # read local .env file
 import os
 import re
 import boto3
@@ -19,8 +20,6 @@ import tiktoken
 from trafilatura import extract, fetch_url
 from trafilatura.settings import use_config
 from cachetools import LRUCache
-from dotenv import load_dotenv, find_dotenv
-_ = load_dotenv(find_dotenv()) # read local .env file
 from src.logger_config import get_logger
 from src.system_prompt import SystemPrompt, FilePromptStrategy, DynamoDBPromptStrategy, S3PromptStrategy
 from src.chat_manager import ChatManager
@@ -149,8 +148,18 @@ def moderate_messages(messages):
         logger.debug(f"Moderation error: {e}")
         return False
 
-# Where's the beef? Oh, it's here
 def prepare_payload(body, context):
+    """
+    This function prepares the payload for a chat event. It extracts the bot user ID, channel ID, thread timestamp, 
+    user ID, and command text from the event body and context.
+
+    Parameters:
+    body (dict): The body of the event.
+    context (dict): The context of the event.
+
+    Returns:
+    tuple: A tuple containing the bot user ID, channel ID, thread timestamp, user ID, and command text.
+    """
     event = body.get('event')
     if event is None:
         return None
@@ -158,14 +167,10 @@ def prepare_payload(body, context):
     channel_id = event.get('channel')
     thread_ts = event.get('thread_ts', event.get('ts'))
     user_id = event.get('user', context.get('user_id'))
-
     if f"<@{bot_user_id}" in event.get('text'):
         command_text = event.get('text').split(f"<@{bot_user_id}>")[1].strip()
-    # elif ":snc" in event.get('text'):
-    #     command_text = event.get('text').replace(":snc ", "").strip()
     else:
         command_text = event.get('text')
-
     return bot_user_id, channel_id, thread_ts, user_id, command_text
 
 
@@ -249,31 +254,49 @@ def num_tokens_from_messages(messages, model="gpt-4"):
 
 # Retrieve text from the Slack conversation thread
 def get_conversation_history(app, channel_id, thread_ts):
+    """
+    This function retrieves the conversation history of a specific thread in a channel using the Slack API.
+
+    Parameters:
+    app (object): The application instance.
+    channel_id (str): The ID of the channel where the thread is located.
+    thread_ts (str): The timestamp of the thread.
+
+    Returns:
+    history (dict): The conversation history of the thread.
+    """
     history = app.client.conversations_replies(
         channel=channel_id,
         ts=thread_ts,
         inclusive=True
     )
-    # logger.debug(type(history))
-    # logger.debug(history)
     return history
 
-# This builds the message object, including any previous interactions in the thread
 def process_conversation_history(conversation_history, bot_user_id, channel_id, thread_ts, user_id):
+    """
+    This function processes the conversation history in a chat. It checks for a ChatManager object for the user and 
+    a Channel object for the channel. If found, it retrieves the appropriate system prompt. It then processes each 
+    message in the conversation history and appends it to a list of messages.
+
+    Parameters:
+    conversation_history (dict): The conversation history.
+    bot_user_id (str): The ID of the bot user.
+    channel_id (str): The ID of the channel.
+    thread_ts (str): The timestamp of the thread.
+    user_id (str): The ID of the user.
+
+    Returns:
+    messages (list): A list of processed messages from the conversation history.
+    """
     sp = SYSTEM_PROMPT
     cm = cache.get(user_id)
     if cm is not None:
-        logger.debug(f"Found ChatManager object for user {user_id}")        
         channel = cm.get_channel(channel_id)
         if channel is not None:
-            logger.debug(f"Found Channel object for channel {channel_id}")              
             found = False
             for thread, prompt_key in channel.items():  
                 if thread_ts == thread:  
                     found = True
-                    logger.debug(f"Found object for thread {thread_ts}")         
-                    # prompt_key is now already the correct value, so no need to index
-                    logger.debug(f"Found prompt key: {prompt_key}")
                     sp = prompt.get_prompt(prompt_key)            
             if not found:
                 sp = cm.prompt_key
@@ -285,53 +308,78 @@ def process_conversation_history(conversation_history, bot_user_id, channel_id, 
     for message in conversation_history['messages'][:-1]:
         role = "assistant" if message['user'] == bot_user_id else "user"
         message_text = process_message(message, bot_user_id)
-        logger.debug(f"message_text: {message_text}")
         if message_text:
             messages.append({"role": role, "content": message_text})
     logger.info(messages)
     return messages
 
-
 def process_message(message, bot_user_id):
-    logger.debug("process_message(message, bot_user_id)")
-    logger.debug(f"message: {message['text']}")
-    logger.debug(f"bot_user_id: {bot_user_id}")
-    logger.debug(f"user: {message['user']}")
+    """
+    This function determines the role of the message sender and cleans 
+    the message text accordingly.
 
+    Parameters:
+    message (dict): The message to be processed.
+    bot_user_id (str): The ID of the bot user.
+
+    Returns:
+    str: The cleaned message text.
+    """
     message_text = message['text']
     role = "assistant" if message['user'] == bot_user_id else "user"
-
-    # Removing this. It creates problems with the LLM context window
-    # if role == "user":
-    #     url_list = extract_url_list(message_text)
-    #     if url_list:
-    #         message_text = augment_user_message(message_text, url_list)
-
-    logger.debug(f"role: {role}")
-    logger.debug(f"augmented user message: {message_text}")
-    message_text = clean_message_text(message_text, role, bot_user_id)
-
-    logger.debug(f"cleaned message text: {message_text}")    
-    return message_text
-
-
-def clean_message_text(message_text, role, bot_user_id):
     if (f'<@{bot_user_id}>' in message_text) or (role == "assistant"):
         message_text = message_text.replace(f'<@{bot_user_id}>', '').strip()
-        # return message_text
+    # message_text = clean_message_text(message_text, role, bot_user_id)
     return message_text
-    # return None
 
+# def clean_message_text(message_text, role, bot_user_id):
+#     """
+#     This function cleans the text of a message. If the message is from the bot or mentions the bot, it removes the 
+#     bot's mention from the text.
+
+#     Parameters:
+#     message_text (str): The text of the message.
+#     role (str): The role of the message sender.
+#     bot_user_id (str): The ID of the bot user.
+
+#     Returns:
+#     str: The cleaned message text.
+#     """
+#     if (f'<@{bot_user_id}>' in message_text) or (role == "assistant"):
+#         message_text = message_text.replace(f'<@{bot_user_id}>', '').strip()
+#     return message_text
 
 def update_chat(app, channel_id, reply_message_ts, response_text):
+    """
+    This function updates a chat message in a specific channel using the Slack API. It takes in the application 
+    instance, channel ID, timestamp of the message to be updated, and the new text for the message.
+
+    Parameters:
+    app (object): The application instance.
+    channel_id (str): The ID of the channel where the message is located.
+    reply_message_ts (str): The timestamp of the message to be updated.
+    response_text (str): The new text for the message.
+
+    Returns:
+    None
+    """
     r = app.client.chat_update(
         channel=channel_id,
         ts=reply_message_ts,
         text=response_text
     )
-    print(r)
 
 def generate_image(iPrompt):
+    """
+    This function generates an image using OpenAI's Image API based on a given prompt. It then constructs a response 
+    in a specific format that includes the image URL.
+
+    Parameters:
+    iPrompt (str): The prompt used to generate the image.
+
+    Returns:
+    j (dict): A dictionary containing the response type, blocks, and image details.
+    """
     response = openai.Image.create(prompt=iPrompt, n=1, size="512x512")
     j = {
         "response_type": "in_channel",
@@ -350,13 +398,17 @@ def generate_image(iPrompt):
     }
     return j
 
-# We're not using long-term langchain memory in this app.
-# Instead, we let Slack track history, grab it from whatever
-# thread is in scope, and copy it to LangChain history if
-# we need it.
-# Note that the role definitions are from OpenAI and
-# may not translate to other models
 def copy_history_to_langchain(message):
+    """
+    This function copies the chat history from Slack to LangChain. It iterates through each message and adds it to 
+    the LangChain history based on the role of the message sender.
+
+    Parameters:
+    message (list): A list of messages from the chat history.
+
+    Returns:
+    msgs (ChatMessageHistory): The chat history in LangChain format.
+    """
     msgs = ChatMessageHistory()
     for m in message:
         if m.get('role') == 'system':
@@ -365,7 +417,6 @@ def copy_history_to_langchain(message):
             msgs.add_user_message(m.get('content'))
         elif m.get('role') == 'assistant':
             msgs.add_ai_message(m.get('content'))
-
     return msgs
 
 
