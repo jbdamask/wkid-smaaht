@@ -370,10 +370,19 @@ def copy_history_to_langchain(message):
 
 
 def search_and_chat(messages, text):
-    # Build LangChain memory from Slack chat history
+    """
+    This function loads Slack chat history into LangChain memory, initializes a ChatOpenAI instance, and sets up a 
+    conversational chat agent with DuckDuckGo search results. It then executes the agent with the given text and 
+    returns the output.
+
+    Parameters:
+    messages (list): A list of messages from Slack chat history.
+    text (str): The text to be processed by the chat agent.
+
+    Returns:
+    str: The output from the chat agent.
+    """
     msgs = copy_history_to_langchain(messages)
-    # I don't think i need this next line because the text message is already in the history
-    # msgs.add_user_message(text)
     memory = ConversationBufferMemory(
         chat_memory=msgs, return_messages=True, memory_key="chat_history", output_key="output"
     )
@@ -387,13 +396,23 @@ def search_and_chat(messages, text):
         return_intermediate_steps=True,
         handle_parsing_errors=True,
     )    
-
     st_cb = StdOutCallbackHandler()
     response = executor(text, callbacks=[st_cb])
     return response["output"]
 
 
 def summarize_chain(docs):
+    """
+    This function runs a LangChain summarization chain on a set of documents. It initializes a ChatOpenAI instance with a 
+    specific model, loads a summarization chain with specific prompts, runs the chain on the documents, and returns 
+    the result.
+
+    Parameters:
+    docs (list): A list of documents to be summarized.
+
+    Returns:
+    result (str): The summarized content of the documents.
+    """
     llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k", openai_api_key=OPENAI_API_KEY)
     PROMPT = CONCISE_SUMMARY_PROMPT
     chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=PROMPT, combine_prompt=PROMPT)
@@ -401,34 +420,53 @@ def summarize_chain(docs):
     return result
 
 def summarize_web_page(url):
-    # loader = WebBaseLoader(url)
-    # loader = loader
-    # docs = loader.load_and_split()
+    """
+    This function summarizes the content of a web page. It creates a file handler using the OpenAI API key, reads the 
+    web page content, and then summarizes it.
+
+    Parameters:
+    url (str): The URL of the web page to be summarized.
+
+    Returns:
+    str: The summarized content of the web page.
+    """
     handler = create_file_handler(url, OPENAI_API_KEY, webpage=True)
     docs = handler.read_file(url)
     return summarize_chain(docs)
     
-# Method to handle file uploads
+# Throw doc to a summarize chain
 def summarize_file(file):
+    """
+    This function summarizes the content of a file. It creates a file handler using the OpenAI API key, reads the file 
+    from a private URL using the Slack bot token, and then summarizes the document content.
+
+    Parameters:
+    file (dict): A dictionary containing file information.
+
+    Returns:
+    result (str): The summarized content of the file.
+    """
+    # TODO - Retrieve handler and docs from FileRegister intead of recreating
     logger.info(f"Summarizing File: {file}")
     handler = create_file_handler(file.get('name'), OPENAI_API_KEY)
-    # result = app.client.files_info(file=file_id)    
-    # file_info = result['file']    
-    # docs = handler.read_file(file_info['url_private'], SLACK_BOT_TOKEN)
     docs = handler.read_file(file.get('url_private'), SLACK_BOT_TOKEN)    
     result = summarize_chain(docs)
     return result
-# def summarize_file(app,body, context):
-#     logger.info(f"File: {body['event']['files'][0]['name']}")
-#     handler = create_file_handler(body['event']['files'][0]['name'], OPENAI_API_KEY)
-#     file_id = body['event']['files'][0]['id']
-#     result = app.client.files_info(file=file_id)    
-#     file_info = result['file']    
-#     docs = handler.read_file(file_info['url_private'], SLACK_BOT_TOKEN)
-#     result = summarize_chain(docs)
-#     return result
 
 def register_file(file, channel_id, thread_ts):
+    """
+    This function registers a file with the system. It creates a file handler using the OpenAI API key, reads the file 
+    from a private URL using the Slack bot token, and loads the document into a ChatWithDoc object. The file is then added to the 
+    file registry with its name, channel ID, thread timestamp, file ID, private URL, handler, and chat object.
+
+    Parameters:
+    file (dict): A dictionary containing file information.
+    channel_id (str): The ID of the channel where the file is located.
+    thread_ts (str): The timestamp of the thread where the file is located.
+
+    Returns:
+    None
+    """
     handler = create_file_handler(file.get('name'), OPENAI_API_KEY)
     docs = handler.read_file(file.get('url_private'), SLACK_BOT_TOKEN)
     chat = ChatWithDoc(file.get('name'))
@@ -437,34 +475,25 @@ def register_file(file, channel_id, thread_ts):
     return
 
 def doc_q_and_a(file, channel_id, thread_ts, question):
-    # TODO: CLEAN THIS UP SO THAT DOC HANDLERS AND LOADS HAPPEN ONCE AND ARE REGISTERED FOR REUSE
-    # handler = create_file_handler(file.get('name'), OPENAI_API_KEY)
-    # docs = handler.read_file(file.get('url_private'), SLACK_BOT_TOKEN)
+    """
+    This function answers questions about a file.
     
+    Parameters:
+    file (str): The name of the file to retrieve.
+    channel_id (str): The ID of the Slack channel where the file was uploaded.
+    thread_ts (str): The timestamp of the Slack thread where the file was uploaded.
+    question (str): The question to be answered.
+    
+    Returns:
+    response (str): The response from the RetrievalQA run method.
+    
+    Note: This function uses the OpenAI API and requires the OPENAI_API_KEY to be set.
+    """
     llm = ChatOpenAI(temperature=0, model_name=MODEL, openai_api_key=OPENAI_API_KEY)
     f = fileRegistry.get_files(file, channel_id, thread_ts)
-    # response_docs = f[0].get('chat').query(question)  
     db = f[0].get('chat').db
     retriever = VectorStoreRetriever(vectorstore=db)
-    # retriever = f[0].get('chat').db.as_retriver()
     qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever)
     response = qa.run(question)
-    # tool = create_retriever_tool(
-    #     retriever, 
-    #     "search_state_of_union",
-    #     "Searches and returns documents regarding the state-of-the-union."
-    # )
-    # tools = [tool]
-
-    
-    # agent_executor = create_conversational_retrieval_agent
-
     return response
-
-# def register_doc(filepath, channel_id, thread_id):
-#     handler = create_file_handler(filepath, OPENAI_API_KEY)
-#     fr = FileRegistry(handler)
-#     fr.add_channel(channel_id)
-#     fr.add_thread(channel_id, thread_id)
-#     fileHandlerCache[handler] = fr
     
