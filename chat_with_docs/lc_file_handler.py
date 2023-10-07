@@ -35,14 +35,13 @@ class Handler(abc.ABC):
     def read_file(self):
         pass
 
-    # def read_file(self, url, SLACK_BOT_TOKEN):
-    #     self.file_content = self._read_file_content(url, SLACK_BOT_TOKEN)
-
+    # TODO - I think I can remove this
     def _read_file_content(self, url, SLACK_BOT_TOKEN) :
         headers = {'Authorization': f'Bearer {SLACK_BOT_TOKEN}'}
         response = requests.get(url, headers=headers)
         return response.content
     
+    # TODO - May or may not want to keep this method
     def q_and_a(self, question):
         # Assumes an agent has been configured. 
         result = None
@@ -54,7 +53,8 @@ class Handler(abc.ABC):
         return result
         # return self.agent(question) # This invokes the default __call__ method
 
-    # Not all filetypes are accessible by LangChain over the web. 
+    # Not all filetypes are accessible by LangChain over the web.
+    # Some need to be downloaded locally
     def download_local_file(self, url, headers, directory='downloads'):
         import requests
         import uuid        
@@ -76,8 +76,55 @@ class Handler(abc.ABC):
     def delete_local_file(self, filepath):
         if os.path.isfile(filepath):
             os.remove(filepath)
-             
 
+class PDFHandler(Handler):
+    def handle(self):
+        return f"Handling PDF file: {self.file}"
+
+    def read_file(self, url, SLACK_BOT_TOKEN):
+        headers = {'Authorization': f'Bearer {SLACK_BOT_TOKEN}'}
+        logger.info(url)
+        loader = OnlinePDFLoader(url, headers=headers)
+        self.documents = loader.load_and_split()
+        return self.documents
+
+class DOCXHandler(Handler):
+    def handle(self):
+        return f"Handling DOCX file: {self.file}"
+    
+    def read_file(self, url, SLACK_BOT_TOKEN):
+        headers = {'Authorization': f'Bearer {SLACK_BOT_TOKEN}'}
+        logger.info(url)
+        filename = self.download_local_file(url, headers)
+        loader = UnstructuredWordDocumentLoader(filename, headers=headers)
+        self.documents = loader.load_and_split()
+        self.delete_local_file(filename)
+        return self.documents             
+
+class TxtHandler(Handler):
+    def handle(self):
+        return f"Handling txt file: {self.file}"  
+    
+    def read_file(self, url, SLACK_BOT_TOKEN):
+        headers = {'Authorization': f'Bearer {SLACK_BOT_TOKEN}'}
+        logger.info(url)
+        filename = self.download_local_file(url, headers)
+        loader = UnstructuredFileLoader(filename, headers=headers)
+        self.documents = loader.load_and_split()
+        self.delete_local_file(filename)        
+        return self.documents     
+
+class WebHandler(Handler):
+    def handle(self):
+        return f"Handling web page: {self.file}"
+    
+    def read_file(self, url):
+        logger.info(url)
+        loader = WebBaseLoader(url)
+        self.documents = loader.load_and_split()  
+        return self.documents    
+    
+# TODO - Need to implement these 
 class PandasWrapperHandler(Handler):
     def handle(self):
         return f"Wrapping {self.file} in Pandas dataframe"
@@ -101,31 +148,6 @@ class PandasWrapperHandler(Handler):
             format_instructions = FORMAT_INSTRUCTIONS
             )
 
-class PDFHandler(Handler):
-    def handle(self):
-        return f"Handling PDF file: {self.file}"
-
-    def read_file(self, url, SLACK_BOT_TOKEN):
-        headers = {'Authorization': f'Bearer {SLACK_BOT_TOKEN}'}
-        logger.info(url)
-        loader = OnlinePDFLoader(url, headers=headers)
-        documents = loader.load_and_split()
-        return documents
-
-class DOCXHandler(Handler):
-    def handle(self):
-        return f"Handling DOCX file: {self.file}"
-    
-    def read_file(self, url, SLACK_BOT_TOKEN):
-        headers = {'Authorization': f'Bearer {SLACK_BOT_TOKEN}'}
-        logger.info(url)
-        filename = self.download_local_file(url, headers)
-        loader = UnstructuredWordDocumentLoader(filename, headers=headers)
-        documents = loader.load_and_split()
-        self.delete_local_file(filename)
-        return documents
-
-# class ExcelHandler(Handler):
 class ExcelHandler(PandasWrapperHandler):
     def handle(self):
         return f"Handling Excel file: {self.file}"
@@ -163,22 +185,6 @@ class CSVHandler(PandasWrapperHandler):
         return self.q_and_a(self.first_impression)
             # self.agent.run("What's the average rate of change from month to month?"))
 
-class TxtHandler(Handler):
-    def handle(self):
-        return f"Handling txt file: {self.file}"  
-    
-    def read_file(self, url, SLACK_BOT_TOKEN):
-        headers = {'Authorization': f'Bearer {SLACK_BOT_TOKEN}'}
-        logger.info(url)
-        filename = self.download_local_file(url, headers)
-        loader = UnstructuredFileLoader(filename, headers=headers)
-        documents = loader.load_and_split()
-        self.delete_local_file(filename)        
-        return documents    
-    
-    # def read_file(self, url, SLACK_BOT_TOKEN):
-    #     file_content = self._read_file_content(url, SLACK_BOT_TOKEN)
-
 class JSONHandler(Handler):
     def handle(self):
         return f"Handling JSON file: {self.file}"   
@@ -198,28 +204,19 @@ class MarkdownHandler(Handler):
     def read_file(self):
         pass    
 
-class WebHandler(Handler):
-    def handle(self):
-        return f"Handling web page: {self.file}"
-    
-    def read_file(self, url):
-        logger.info(url)
-        loader = WebBaseLoader(url)
-        documents = loader.load_and_split()  
-        return documents    
-    
-    # def read_file(self, url, SLACK_BOT_TOKEN):
-    #     file_content = self._read_file_content(url, SLACK_BOT_TOKEN)
-
 class HandlerFactory:
+    # Note - WebHandler isn't in here because this factory is based on 
+    # filetype. Instead, we instantiate it directly if we know we're
+    # dealing with a web page
     handlers = {
         "pdf": PDFHandler, 
         "docx": DOCXHandler, 
-        "xlsx": ExcelHandler, 
         "txt": TxtHandler,
-        "json": JSONHandler,
-        "md": MarkdownHandler,
-        "csv": CSVHandler}
+        # "xlsx": ExcelHandler, 
+        # "json": JSONHandler,
+        # "md": MarkdownHandler,
+        # "csv": CSVHandler,
+        }
 
     @classmethod
     def get_handler(cls, file, open_api_key):
@@ -236,7 +233,6 @@ def create_file_handler(file, openai_api_key, webpage=False):
     else:
         handler = HandlerFactory.get_handler(file, openai_api_key)
     return handler
-    # return handler.handle(file)
 
 class FileRegistry:
     def __init__(self):
@@ -266,38 +262,3 @@ class FileRegistry:
             return [file for sublist in self.registry[filename].values() for file in sublist]
         else:
             return None
-
-
-# Keeps Handlers organized with their channel/thread
-# class FileRegistry:
-#     def __init__(self, Handler):
-#         self.handler = Handler
-#         self.channels = {}
-
-#     # Handler methods
-#     def get_handler(self):
-#         return self.handler
-
-#     def set_handler(self, handler):
-#         self.handler = handler
-
-#     # Channel methods
-#     def get_channels(self):
-#         return self.channels
-
-#     def add_channel(self, channel_id):
-#         self.channels[channel_id] = []
-
-#     # Thread methods
-#     def get_threads(self, channel_id):
-#         return self.channels.get(channel_id, None)
-
-#     def add_thread(self, channel_id, thread_id):
-#         if channel_id in self.channels:
-#             self.channels[channel_id].append(thread_id)
-
-#     def get_thread(self, channel_id, thread_id):
-#         if channel_id in self.channels:
-#             threads = self.channels[channel_id]
-#             if thread_id in threads:
-#                 return thread_id
