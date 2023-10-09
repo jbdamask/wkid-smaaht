@@ -2,7 +2,7 @@ import langchain
 from langchain.llms import OpenAI
 from langchain.chat_models import ChatOpenAI
 from langchain.agents import AgentType, load_tools
-from langchain.document_loaders import PyPDFLoader, OnlinePDFLoader, UnstructuredWordDocumentLoader, UnstructuredFileLoader, WebBaseLoader
+from langchain.document_loaders import PyPDFLoader, OnlinePDFLoader, UnstructuredPDFLoader, UnstructuredWordDocumentLoader, UnstructuredFileLoader, WebBaseLoader
 # from custom_agent_types import CustomAgentType
 import pandas as pd
 import abc
@@ -84,8 +84,13 @@ class PDFHandler(Handler):
     def read_file(self, url, SLACK_BOT_TOKEN):
         headers = {'Authorization': f'Bearer {SLACK_BOT_TOKEN}'}
         logger.info(url)
-        loader = OnlinePDFLoader(url, headers=headers)
+        # loader = OnlinePDFLoader(url, headers=headers)
+        filename = self.download_local_file(url, headers)
+        # loader = UnstructuredPDFLoader(filename, headers=headers, mode="elements", metadata_filename=url)
+        loader = UnstructuredPDFLoader(filename, headers=headers, metadata_filename=url)
         self.documents = loader.load_and_split()
+        # logger.info(self.documents[0].page_content)
+        logger.info(self.documents[0].metadata)
         return self.documents
 
 class DOCXHandler(Handler):

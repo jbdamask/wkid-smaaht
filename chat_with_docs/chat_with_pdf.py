@@ -6,7 +6,6 @@ from langchain.embeddings import OpenAIEmbeddings
 # Configure logging
 logger = get_logger(__name__)
 
-
 class ChatWithDoc:
     def __init__(self, doc):
         self.doc = doc
@@ -20,6 +19,8 @@ class ChatWithDoc:
         embeddings = OpenAIEmbeddings(openai_api_key = openai_api_key)
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
         docs = text_splitter.split_documents(documents)
+        for idx, text in enumerate(docs):
+            docs[idx].metadata['filename'] = text.metadata['source'].split('/')[-1]        
         # load it into Chroma
         self.db = Chroma.from_documents(docs, embeddings)        
         logger.info("Documents loaded successfully")

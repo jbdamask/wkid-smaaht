@@ -543,8 +543,10 @@ def doc_q_and_a(file, channel_id, thread_ts, question):
     llm = ChatOpenAI(temperature=0, model_name=MODEL, openai_api_key=OPENAI_API_KEY)
     f = fileRegistry.get_files(file, channel_id, thread_ts)
     db = f[0].get('chat').db
-    retriever = VectorStoreRetriever(vectorstore=db)
-    qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever)
-    response = qa.run(question)
+    retriever = VectorStoreRetriever(vectorstore=db, search_kwargs={"filter": {"filename": file.split('/')[-1]}})
+    # qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, retriever_kwargs={"search_kwargs": {"filter": {"filename": file.split('/')[-1]}}})
+    qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents = True)
+    # response = qa.run(question)
+    response = qa(question)
     return response
     
