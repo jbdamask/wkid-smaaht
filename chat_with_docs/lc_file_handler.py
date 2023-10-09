@@ -10,8 +10,10 @@ import os
 import requests
 from io import StringIO
 from src.logger_config import get_logger
+from langchain.vectorstores import Chroma
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.embeddings import OpenAIEmbeddings
 langchain.verbose = True
-
 # Configure logging
 logger = get_logger(__name__)
 
@@ -19,13 +21,15 @@ class Handler(abc.ABC):
 
     first_impression = "What's this file about?"
 
-    def __init__(self, file, openai_api_key):
-        _, file_extension = os.path.splitext(file)
+    def __init__(self, file, openai_api_key, slack_bot_token):
+        # _, file_extension = os.path.splitext(file)
+        _, file_extension = os.path.splitext(file.get('name'))
         self.file_type = file_extension.lstrip('.').lower()
         self.file = file
         self.openai_api_key = openai_api_key
+        # self.slack_bot_token = slack_bot_token
+        self.headers = {'Authorization': f'Bearer {slack_bot_token}'}
         self.llm = ChatOpenAI(temperature=0,openai_api_key=self.openai_api_key)
-        # self.llm = OpenAI(temperature=0,openai_api_key=self.openai_api_key)
 
     # def handle(self, file):
     def handle(self):
@@ -41,6 +45,26 @@ class Handler(abc.ABC):
         response = requests.get(url, headers=headers)
         return response.content
     
+    def download_and_store(self):
+        # headers = {'Authorization': f'Bearer {self.slack_bot_token}'}
+        url = self.file.get('url_private')
+        logger.info(url)
+        filepath = self._download_local_file()        
+        embeddings = OpenAIEmbeddings(openai_api_key = self.openai_api_key)
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+        # loader_instance = self.loader(self.file.get('name'), headers=self.headers, metadata_filename=self.file.get('url_private'))
+        loader_instance = self.loader(filepath, headers=self.headers, metadata_filename=self.file.get('url_private'))
+        # documents = self.loader.load()  
+        documents = loader_instance.load()
+        docs = text_splitter.split_documents(documents)
+        filename = self.file.get('name')
+        for idx, text in enumerate(docs):
+            docs[idx].metadata['filename'] = filename.split('/')[-1]
+            # docs[idx].metadata['filename'] = text.metadata['source'].split('/')[-1]        
+        # load it into Chroma
+        self.db = Chroma.from_documents(docs, embeddings)        
+
+
     # TODO - May or may not want to keep this method
     def q_and_a(self, question):
         # Assumes an agent has been configured. 
@@ -55,11 +79,15 @@ class Handler(abc.ABC):
 
     # Not all filetypes are accessible by LangChain over the web.
     # Some need to be downloaded locally
-    def download_local_file(self, url, headers, directory='downloads'):
+    # def _download_local_file(self, headers, directory='downloads'):
+    def _download_local_file(self):    
         import requests
-        import uuid        
+        import uuid
+        directory='downloads'
+        url = self.file.get('url_private')
         file_type = url.split('.')[-1]
-        response = requests.get(url, headers=headers)
+        # response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=self.headers)
         # Generate a random UUID
         file_uuid = uuid.uuid4()
         # Convert the UUID to a string and append the .docx extension
@@ -78,10 +106,15 @@ class Handler(abc.ABC):
             os.remove(filepath)
 
 class PDFHandler(Handler):
+    
+    def __init__(self, file, openai_api_key, slack_bot_token):
+        super().__init__(file, openai_api_key, slack_bot_token)
+        self.loader = UnstructuredPDFLoader
+
     def handle(self):
         return f"Handling PDF file: {self.file}"
 
-    def read_file(self, url, SLACK_BOT_TOKEN):
+    def read_file(self, url, SLACK_BOT_TOKEN, loader=UnstructuredPDFLoader):
         headers = {'Authorization': f'Bearer {SLACK_BOT_TOKEN}'}
         logger.info(url)
         # loader = OnlinePDFLoader(url, headers=headers)
@@ -120,6 +153,7 @@ class TxtHandler(Handler):
         return self.documents     
 
 class WebHandler(Handler):
+
     def handle(self):
         return f"Handling web page: {self.file}"
     
@@ -224,26 +258,28 @@ class HandlerFactory:
         }
 
     @classmethod
-    def get_handler(cls, file, open_api_key):
-        _, file_extension = os.path.splitext(file)
+    def get_handler(cls, file, open_api_key, slack_bot_token):
+        # _, file_extension = os.path.splitext(file)
+        _, file_extension = os.path.splitext(file.get('name'))
         file_type = file_extension.lstrip('.').lower()
         Handler = cls.handlers.get(file_type)
         if Handler is None:
             raise ValueError(f"No handler for file type {file_type}")
-        return Handler(file, open_api_key)
+        return Handler(file, open_api_key, slack_bot_token)
 
-def create_file_handler(file, openai_api_key, webpage=False):
+def create_file_handler(file, openai_api_key, slack_bot_token, webpage=False):
     if webpage:
         handler = WebHandler(file, openai_api_key)
     else:
-        handler = HandlerFactory.get_handler(file, openai_api_key)
+        handler = HandlerFactory.get_handler(file, openai_api_key, slack_bot_token)
     return handler
 
 class FileRegistry:
     def __init__(self):
         self.registry = {}
 
-    def add_file(self, filename, channel_id, thread_ts, file_id, private_url, handler, chatWithDoc):
+    # def add_file(self, filename, channel_id, thread_ts, file_id, private_url, handler, chatWithDoc):
+    def add_file(self, filename, channel_id, thread_ts, file_id, private_url, handler):
         if filename not in self.registry:
             self.registry[filename] = {}
         key = (channel_id, thread_ts)
@@ -253,7 +289,8 @@ class FileRegistry:
                 {'file_id': file_id, 
                  'private_url': private_url, 
                  'handler': handler, 
-                 'chat': chatWithDoc})
+                #  'chat': chatWithDoc,
+                 })
 
     def get_files(self, filename, channel_id, thread_ts):
         key = (channel_id, thread_ts)

@@ -518,11 +518,14 @@ def register_file(file, channel_id, thread_ts):
     Returns:
     None
     """
-    handler = create_file_handler(file.get('name'), OPENAI_API_KEY)
-    docs = handler.read_file(file.get('url_private'), SLACK_BOT_TOKEN)
-    chat = ChatWithDoc(file.get('name'))
-    chat.load(docs, openai_api_key=OPENAI_API_KEY)
-    fileRegistry.add_file(file.get('name'), channel_id, thread_ts, file.get('id'), file.get('url_private'), handler, chat)
+    # handler = create_file_handler(file.get('name'), OPENAI_API_KEY, SLACK_BOT_TOKEN)
+    handler = create_file_handler(file, OPENAI_API_KEY, SLACK_BOT_TOKEN)
+    # docs = handler.read_file(file.get('url_private'), SLACK_BOT_TOKEN)
+    # chat = ChatWithDoc(file.get('name'))
+    # chat.load(docs, openai_api_key=OPENAI_API_KEY)
+    # fileRegistry.add_file(file.get('name'), channel_id, thread_ts, file.get('id'), file.get('url_private'), handler, chat)
+    handler.download_and_store()
+    fileRegistry.add_file(file.get('name'), channel_id, thread_ts, file.get('id'), file.get('url_private'), handler)
     return
 
 def doc_q_and_a(file, channel_id, thread_ts, question):
@@ -542,11 +545,13 @@ def doc_q_and_a(file, channel_id, thread_ts, question):
     """
     llm = ChatOpenAI(temperature=0, model_name=MODEL, openai_api_key=OPENAI_API_KEY)
     f = fileRegistry.get_files(file, channel_id, thread_ts)
-    db = f[0].get('chat').db
+    # db = f[0].get('chat').db
+    db = f[0].get('handler').db
     retriever = VectorStoreRetriever(vectorstore=db, search_kwargs={"filter": {"filename": file.split('/')[-1]}})
+    # retriever = VectorStoreRetriever(vectorstore=db)
     # qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, retriever_kwargs={"search_kwargs": {"filter": {"filename": file.split('/')[-1]}}})
-    qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents = True)
+    qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents = False)
     # response = qa.run(question)
     response = qa(question)
-    return response
+    return response.get('result')
     
