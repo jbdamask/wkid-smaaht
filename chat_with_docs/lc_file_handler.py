@@ -66,7 +66,7 @@ class Handler(abc.ABC):
         filtered_docs = utils.filter_complex_metadata(self.docs)
         # self.db = Chroma.from_documents(docs, embeddings)    
         self.db = Chroma.from_documents(filtered_docs, embeddings)    
-        self.delete_local_file(filename)    
+        self.delete_local_file(filepath)    
 
 
     # TODO - May or may not want to keep this method
