@@ -548,29 +548,17 @@ def doc_q_and_a(file, channel_id, thread_ts, question):
     # db = f[0].get('chat').db
     db = f[0].get('handler').db
     retriever = VectorStoreRetriever(vectorstore=db, search_kwargs={"filter": {"filename": file.split('/')[-1]}})
-    # retriever = VectorStoreRetriever(vectorstore=db)
-    # qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, retriever_kwargs={"search_kwargs": {"filter": {"filename": file.split('/')[-1]}}})
     qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents = True)
-    # response = qa.run(question)
     response = qa(question)
-    # return response.get('result')
-    # s = []
-    # for d in response.get('source_documents'):
-    #     logger.info(type(d))
-    #     logger.info(d.metadata)
-    #     filename = d.metadata.get('filename')
-    #     page = d.metadata.get('page')
-    #     s.append(f"File: {filename}\tPage: {page}")
-    
-    # md = '\n'.join(s)
     s = []
     for d in response.get('source_documents'):
         filename = d.metadata.get('filename')
         page = int(d.metadata.get('page'))  # convert page to int for proper sorting
-        s.append((filename, page))    
+        content_snippit = d.page_content[:50]
+        s.append((filename, page, content_snippit))    
     s = list(set(s))
     s.sort(key=lambda x: x[1])  # sort by page number
-    md = '\n'.join(f"File: {filename}\tPage: {page}" for filename, page in s)
+    md = '\n'.join(f"File: {filename}\tPage: {page}\tSnippit: {content_snippit}" for filename, page, content_snippit in s)
     blocks = [
         {
             "type": "section",
