@@ -553,5 +553,23 @@ def doc_q_and_a(file, channel_id, thread_ts, question):
     qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents = True)
     # response = qa.run(question)
     response = qa(question)
-    return response.get('result')
+    # return response.get('result')
+    s = []
+    for d in response.get('source_documents'):
+        logger.info(type(d))
+        logger.info(d.metadata)
+        filename = d.metadata.get('filename')
+        page = d.metadata.get('page')
+        s.append(f"File: {filename}\tPage: {page}")
+    md = '\n'.join(s)
+    blocks = [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"{response.get('result')}\n {md}"
+            }
+        }
+    ]
+    return blocks
     

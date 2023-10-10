@@ -317,7 +317,12 @@ def process_event(body, context):
             file = most_recent_file[0]
             response = doc_q_and_a(file.get('name'), channel_id, thread_ts, question)  
 
-        update_chat(app, channel_id, reply_message_ts, response)
+        # update_chat(app, channel_id, reply_message_ts, response)
+        app.client.chat_update(
+                channel=channel_id,
+                ts=reply_message_ts,
+                blocks=response
+            )
     else:
         try:
             openai_response = get_completion_from_messages(messages)
