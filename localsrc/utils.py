@@ -554,14 +554,23 @@ def doc_q_and_a(file, channel_id, thread_ts, question):
     # response = qa.run(question)
     response = qa(question)
     # return response.get('result')
+    # s = []
+    # for d in response.get('source_documents'):
+    #     logger.info(type(d))
+    #     logger.info(d.metadata)
+    #     filename = d.metadata.get('filename')
+    #     page = d.metadata.get('page')
+    #     s.append(f"File: {filename}\tPage: {page}")
+    
+    # md = '\n'.join(s)
     s = []
     for d in response.get('source_documents'):
-        logger.info(type(d))
-        logger.info(d.metadata)
         filename = d.metadata.get('filename')
-        page = d.metadata.get('page')
-        s.append(f"File: {filename}\tPage: {page}")
-    md = '\n'.join(s)
+        page = int(d.metadata.get('page'))  # convert page to int for proper sorting
+        s.append((filename, page))    
+    s = list(set(s))
+    s.sort(key=lambda x: x[1])  # sort by page number
+    md = '\n'.join(f"File: {filename}\tPage: {page}" for filename, page in s)
     blocks = [
         {
             "type": "section",
