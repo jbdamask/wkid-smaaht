@@ -56,17 +56,12 @@ class Handler(abc.ABC):
         filepath = self._download_local_file()        
         embeddings = OpenAIEmbeddings(openai_api_key = self.openai_api_key)
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-        # loader_instance = self.loader(self.file.get('name'), headers=self.headers, metadata_filename=self.file.get('url_private'))
         self._instantiate_loader(filepath)
-        # loader_instance = self.loader(filepath, headers=self.headers, metadata_filename=self.file.get('url_private'))
-        # documents = self.loader.load()  
         documents = self.loader.load()
         docs = text_splitter.split_documents(documents)
         filename = self.file.get('name')
         for idx, text in enumerate(docs):
-            docs[idx].metadata['filename'] = filename.split('/')[-1]
-            # docs[idx].metadata['filename'] = text.metadata['source'].split('/')[-1]        
-        # load it into Chroma
+            docs[idx].metadata['filename'] = filename.split('/')[-1]   
         self.db = Chroma.from_documents(docs, embeddings)    
         self.delete_local_file(filename)    
 
