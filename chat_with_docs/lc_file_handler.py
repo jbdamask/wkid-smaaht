@@ -59,11 +59,11 @@ class Handler(abc.ABC):
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
         self._instantiate_loader(filepath)
         documents = self.loader.load()
-        docs = text_splitter.split_documents(documents)
+        self.docs = text_splitter.split_documents(documents)
         filename = self.file.get('name')
-        for idx, text in enumerate(docs):
-            docs[idx].metadata['filename'] = filename.split('/')[-1]   
-        filtered_docs = utils.filter_complex_metadata(docs)
+        for idx, text in enumerate(self.docs):
+            self.docs[idx].metadata['filename'] = filename.split('/')[-1]   
+        filtered_docs = utils.filter_complex_metadata(self.docs)
         # self.db = Chroma.from_documents(docs, embeddings)    
         self.db = Chroma.from_documents(filtered_docs, embeddings)    
         self.delete_local_file(filename)    

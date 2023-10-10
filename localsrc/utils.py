@@ -486,7 +486,7 @@ def summarize_web_page(url):
     return summarize_chain(docs)
     
 # Throw doc to a summarize chain
-def summarize_file(file):
+def summarize_file(file, channel_id, thread_ts):
     """
     This function summarizes the content of a file. It creates a file handler using the OpenAI API key, reads the file 
     from a private URL using the Slack bot token, and then summarizes the document content.
@@ -498,9 +498,13 @@ def summarize_file(file):
     result (str): The summarized content of the file.
     """
     # TODO - Retrieve handler and docs from FileRegister intead of recreating
-    logger.info(f"Summarizing File: {file}")
-    handler = create_file_handler(file.get('name'), OPENAI_API_KEY)
-    docs = handler.read_file(file.get('url_private'), SLACK_BOT_TOKEN)    
+    # logger.info(f"Summarizing File: {file}")
+    # handler = create_file_handler(file.get('name'), OPENAI_API_KEY)
+    # docs = handler.read_file(file.get('url_private'), SLACK_BOT_TOKEN)    
+    f = fileRegistry.get_files(file, channel_id, thread_ts)    
+    handler = f[0].get('handler')
+    # db = handler.db
+    docs = handler.docs
     result = summarize_chain(docs)
     return result
 
