@@ -38,7 +38,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.docstore.document import Document
 from langchain.vectorstores.base import VectorStoreRetriever
 from chat_with_docs.lc_file_handler import create_file_handler, FileRegistry
-from chat_with_docs.chat_with_pdf import ChatWithDoc
+# from chat_with_docs.chat_with_pdf import ChatWithDoc
 from chat_with_docs.prompt import CONCISE_SUMMARY_PROMPT
 
 # Configure logging
@@ -550,7 +550,7 @@ def doc_q_and_a(file, channel_id, thread_ts, question):
     retriever = VectorStoreRetriever(vectorstore=db, search_kwargs={"filter": {"filename": file.split('/')[-1]}})
     # retriever = VectorStoreRetriever(vectorstore=db)
     # qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, retriever_kwargs={"search_kwargs": {"filter": {"filename": file.split('/')[-1]}}})
-    qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents = False)
+    qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents = True)
     # response = qa.run(question)
     response = qa(question)
     return response.get('result')

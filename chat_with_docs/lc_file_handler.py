@@ -39,6 +39,10 @@ class Handler(abc.ABC):
     def read_file(self):
         pass
 
+    @abc.abstractmethod
+    def _instantiate_loader(self, filename):
+        pass
+
     # TODO - I think I can remove this
     def _read_file_content(self, url, SLACK_BOT_TOKEN) :
         headers = {'Authorization': f'Bearer {SLACK_BOT_TOKEN}'}
@@ -53,16 +57,18 @@ class Handler(abc.ABC):
         embeddings = OpenAIEmbeddings(openai_api_key = self.openai_api_key)
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
         # loader_instance = self.loader(self.file.get('name'), headers=self.headers, metadata_filename=self.file.get('url_private'))
-        loader_instance = self.loader(filepath, headers=self.headers, metadata_filename=self.file.get('url_private'))
+        self._instantiate_loader(filepath)
+        # loader_instance = self.loader(filepath, headers=self.headers, metadata_filename=self.file.get('url_private'))
         # documents = self.loader.load()  
-        documents = loader_instance.load()
+        documents = self.loader.load()
         docs = text_splitter.split_documents(documents)
         filename = self.file.get('name')
         for idx, text in enumerate(docs):
             docs[idx].metadata['filename'] = filename.split('/')[-1]
             # docs[idx].metadata['filename'] = text.metadata['source'].split('/')[-1]        
         # load it into Chroma
-        self.db = Chroma.from_documents(docs, embeddings)        
+        self.db = Chroma.from_documents(docs, embeddings)    
+        self.delete_local_file(filename)    
 
 
     # TODO - May or may not want to keep this method
@@ -107,12 +113,18 @@ class Handler(abc.ABC):
 
 class PDFHandler(Handler):
     
-    def __init__(self, file, openai_api_key, slack_bot_token):
-        super().__init__(file, openai_api_key, slack_bot_token)
-        self.loader = UnstructuredPDFLoader
+    # def __init__(self, file, openai_api_key, slack_bot_token):
+    #     super().__init__(file, openai_api_key, slack_bot_token)
+    #     self.loader = UnstructuredPDFLoader
+    #     # self.loader = PyPDFLoader
 
     def handle(self):
         return f"Handling PDF file: {self.file}"
+
+    def _instantiate_loader(self, filename):
+        # self.loader = UnstructuredPDFLoader(filename, mode="elements", metadata_filename=self.file.get('url_private'))
+        # self.loader = PyPDFLoader(filename, metadata_filename=self.file.get('url_private'))
+        self.loader = PyPDFLoader(filename)
 
     def read_file(self, url, SLACK_BOT_TOKEN, loader=UnstructuredPDFLoader):
         headers = {'Authorization': f'Bearer {SLACK_BOT_TOKEN}'}
@@ -120,7 +132,7 @@ class PDFHandler(Handler):
         # loader = OnlinePDFLoader(url, headers=headers)
         filename = self.download_local_file(url, headers)
         # loader = UnstructuredPDFLoader(filename, headers=headers, mode="elements", metadata_filename=url)
-        loader = UnstructuredPDFLoader(filename, headers=headers, metadata_filename=url)
+        loader = UnstructuredPDFLoader(filename, mode="elements")
         self.documents = loader.load_and_split()
         # logger.info(self.documents[0].page_content)
         logger.info(self.documents[0].metadata)
