@@ -296,7 +296,7 @@ def process_event(body, context):
         if not most_recent_file:
             response = "No files found in this thread"
         else:
-            response = summarize_file(most_recent_file[0].get('name'), channel_id, thread_ts)
+            response = summarize_file(most_recent_file[0].get('name'), app, channel_id, thread_ts, reply_message_ts)
         update_chat(app, channel_id, reply_message_ts, response)
     elif command_text.startswith(":qa "):
         question = command_text.replace(":qa ", "").strip()

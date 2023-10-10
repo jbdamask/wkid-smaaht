@@ -41,7 +41,7 @@ class Handler(abc.ABC):
     #     pass
 
     @abc.abstractmethod
-    def _instantiate_loader(self, filename):
+    def instantiate_loader(self, filename):
         pass
 
     # TODO - I think I can remove this
@@ -54,10 +54,10 @@ class Handler(abc.ABC):
         # headers = {'Authorization': f'Bearer {self.slack_bot_token}'}
         url = self.file.get('url_private')
         logger.info(url)
-        filepath = self._download_local_file()        
+        filepath = self.download_local_file()        
         embeddings = OpenAIEmbeddings(openai_api_key = self.openai_api_key)
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-        self._instantiate_loader(filepath)
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+        self.instantiate_loader(filepath)
         documents = self.loader.load()
         self.docs = text_splitter.split_documents(documents)
         filename = self.file.get('name')
@@ -84,7 +84,7 @@ class Handler(abc.ABC):
     # Not all filetypes are accessible by LangChain over the web.
     # Some need to be downloaded locally
     # def _download_local_file(self, headers, directory='downloads'):
-    def _download_local_file(self):    
+    def download_local_file(self):    
         import requests
         import uuid
         directory='downloads'
@@ -119,7 +119,7 @@ class PDFHandler(Handler):
     def handle(self):
         return f"Handling PDF file: {self.file}"
 
-    def _instantiate_loader(self, filename):
+    def instantiate_loader(self, filename):
         # self.loader = UnstructuredPDFLoader(filename, mode="elements", metadata_filename=self.file.get('url_private'))
         # self.loader = PyPDFLoader(filename, metadata_filename=self.file.get('url_private'))
         self.loader = PyPDFLoader(filename)
@@ -140,7 +140,7 @@ class DOCXHandler(Handler):
     def handle(self):
         return f"Handling DOCX file: {self.file}"
 
-    def _instantiate_loader(self, filename):
+    def instantiate_loader(self, filename):
         self.loader = UnstructuredWordDocumentLoader(filename, mode="elements")
 
     # def read_file(self, url, SLACK_BOT_TOKEN):
@@ -156,7 +156,7 @@ class TxtHandler(Handler):
     def handle(self):
         return f"Handling txt file: {self.file}"  
     
-    def _instantiate_loader(self, filename):
+    def instantiate_loader(self, filename):
         self.loader = UnstructuredFileLoader(filename, mode="elements")
     
     # def read_file(self, url, SLACK_BOT_TOKEN):
@@ -172,6 +172,9 @@ class WebHandler(Handler):
 
     def handle(self):
         return f"Handling web page: {self.file}"
+    
+    def instantiate_loader(self, filename):
+        self.loader = WebBaseLoader(filename)
     
     def read_file(self, url):
         logger.info(url)

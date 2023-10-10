@@ -452,7 +452,7 @@ def search_and_chat(messages, text):
     return response["output"]
 
 
-def summarize_chain(docs):
+def summarize_chain(docs, app, channel_id, reply_message_ts):
     """
     This function runs a LangChain summarization chain on a set of documents. It initializes a ChatOpenAI instance with a 
     specific model, loads a summarization chain with specific prompts, runs the chain on the documents, and returns 
@@ -464,13 +464,22 @@ def summarize_chain(docs):
     Returns:
     result (str): The summarized content of the documents.
     """
+    
     llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k", openai_api_key=OPENAI_API_KEY)
     PROMPT = CONCISE_SUMMARY_PROMPT
-    chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=PROMPT, combine_prompt=PROMPT)
-    result = chain.run(docs)
+    # chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=PROMPT, combine_prompt=PROMPT)
+    try:
+        chain = load_summarize_chain(llm, chain_type="stuff")
+        result = chain.run(docs)
+    except openai.error.InvalidRequestError as e:
+        warn = "Document length exceeded model capacity. Changing strategy - please be patient"
+        logger.warning(warn)
+        update_chat(app, channel_id, reply_message_ts, warn)
+        chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=PROMPT, combine_prompt=PROMPT)
+        result = chain.run(docs)
     return result
 
-def summarize_web_page(url):
+def summarize_web_page(url, app="", channel_id="", thread_ts="", reply_message_ts=""):
     """
     This function summarizes the content of a web page. It creates a file handler using the OpenAI API key, reads the 
     web page content, and then summarizes it.
@@ -483,10 +492,10 @@ def summarize_web_page(url):
     """
     handler = create_file_handler(url, OPENAI_API_KEY, webpage=True)
     docs = handler.read_file(url)
-    return summarize_chain(docs)
+    return summarize_chain(docs, app, channel_id, reply_message_ts)
     
 # Throw doc to a summarize chain
-def summarize_file(file, channel_id, thread_ts):
+def summarize_file(file, app, channel_id, thread_ts, reply_message_ts):
     """
     This function summarizes the content of a file. It creates a file handler using the OpenAI API key, reads the file 
     from a private URL using the Slack bot token, and then summarizes the document content.
@@ -499,13 +508,27 @@ def summarize_file(file, channel_id, thread_ts):
     """
     # TODO - Retrieve handler and docs from FileRegister intead of recreating
     # logger.info(f"Summarizing File: {file}")
-    # handler = create_file_handler(file.get('name'), OPENAI_API_KEY)
-    # docs = handler.read_file(file.get('url_private'), SLACK_BOT_TOKEN)    
-    f = fileRegistry.get_files(file, channel_id, thread_ts)    
+    # handler = create_file_handler(file, OPENAI_API_KEY, SLACK_BOT_TOKEN)
+    # # docs = handler.read_file(file.get('url_private'), SLACK_BOT_TOKEN)    
+    # f = fileRegistry.get_files(file, channel_id, thread_ts)
+    # handler = f[0].get('handler')
+    # # db = handler.db
+    # docs = handler.docs
+    ########
+    # STUCK HERE!
+    # I THINK I NEED TO RE-DOWNLOAD THE FILE AND SET UP WITH A DIFFERENT RecursiveCharacterTextSplitter
+    ####
+    # handler = create_file_handler(file, OPENAI_API_KEY, SLACK_BOT_TOKEN)
+    f = fileRegistry.get_files(file, channel_id, thread_ts)
     handler = f[0].get('handler')
-    # db = handler.db
-    docs = handler.docs
-    result = summarize_chain(docs)
+    filepath = handler.download_local_file()
+    handler.instantiate_loader(filepath)
+    documents = handler.loader.load()
+    # text_splitter = RecursiveCharacterTextSplitter(chunk_size=4000, chunk_overlap=0)
+    # docs = text_splitter.split_documents(documents)    
+    # result = summarize_chain(docs)
+    result = summarize_chain(documents, app, channel_id, reply_message_ts)
+    handler.delete_local_file(filepath)
     return result
 
 def register_file(file, channel_id, thread_ts):
