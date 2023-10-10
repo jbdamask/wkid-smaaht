@@ -543,7 +543,7 @@ def doc_q_and_a(file, channel_id, thread_ts, question):
     
     Note: This function uses the OpenAI API and requires the OPENAI_API_KEY to be set.
     """
-    llm = ChatOpenAI(temperature=0, model_name=MODEL, openai_api_key=OPENAI_API_KEY)
+    llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo", openai_api_key=OPENAI_API_KEY)
     f = fileRegistry.get_files(file, channel_id, thread_ts)
     # db = f[0].get('chat').db
     db = f[0].get('handler').db
