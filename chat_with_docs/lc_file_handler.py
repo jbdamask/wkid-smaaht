@@ -11,6 +11,7 @@ import requests
 from io import StringIO
 from src.logger_config import get_logger
 from langchain.vectorstores import Chroma
+from langchain.vectorstores import utils
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings import OpenAIEmbeddings
 langchain.verbose = True
@@ -35,9 +36,9 @@ class Handler(abc.ABC):
     def handle(self):
         raise NotImplementedError
     
-    @abc.abstractmethod
-    def read_file(self):
-        pass
+    # @abc.abstractmethod
+    # def read_file(self):
+    #     pass
 
     @abc.abstractmethod
     def _instantiate_loader(self, filename):
@@ -62,7 +63,9 @@ class Handler(abc.ABC):
         filename = self.file.get('name')
         for idx, text in enumerate(docs):
             docs[idx].metadata['filename'] = filename.split('/')[-1]   
-        self.db = Chroma.from_documents(docs, embeddings)    
+        filtered_docs = utils.filter_complex_metadata(docs)
+        # self.db = Chroma.from_documents(docs, embeddings)    
+        self.db = Chroma.from_documents(filtered_docs, embeddings)    
         self.delete_local_file(filename)    
 
 
@@ -121,43 +124,49 @@ class PDFHandler(Handler):
         # self.loader = PyPDFLoader(filename, metadata_filename=self.file.get('url_private'))
         self.loader = PyPDFLoader(filename)
 
-    def read_file(self, url, SLACK_BOT_TOKEN, loader=UnstructuredPDFLoader):
-        headers = {'Authorization': f'Bearer {SLACK_BOT_TOKEN}'}
-        logger.info(url)
-        # loader = OnlinePDFLoader(url, headers=headers)
-        filename = self.download_local_file(url, headers)
-        # loader = UnstructuredPDFLoader(filename, headers=headers, mode="elements", metadata_filename=url)
-        loader = UnstructuredPDFLoader(filename, mode="elements")
-        self.documents = loader.load_and_split()
-        # logger.info(self.documents[0].page_content)
-        logger.info(self.documents[0].metadata)
-        return self.documents
+    # def read_file(self, url, SLACK_BOT_TOKEN, loader=UnstructuredPDFLoader):
+    #     headers = {'Authorization': f'Bearer {SLACK_BOT_TOKEN}'}
+    #     logger.info(url)
+    #     # loader = OnlinePDFLoader(url, headers=headers)
+    #     filename = self.download_local_file(url, headers)
+    #     # loader = UnstructuredPDFLoader(filename, headers=headers, mode="elements", metadata_filename=url)
+    #     loader = UnstructuredPDFLoader(filename, mode="elements")
+    #     self.documents = loader.load_and_split()
+    #     # logger.info(self.documents[0].page_content)
+    #     logger.info(self.documents[0].metadata)
+    #     return self.documents
 
 class DOCXHandler(Handler):
     def handle(self):
         return f"Handling DOCX file: {self.file}"
-    
-    def read_file(self, url, SLACK_BOT_TOKEN):
-        headers = {'Authorization': f'Bearer {SLACK_BOT_TOKEN}'}
-        logger.info(url)
-        filename = self.download_local_file(url, headers)
-        loader = UnstructuredWordDocumentLoader(filename, headers=headers)
-        self.documents = loader.load_and_split()
-        self.delete_local_file(filename)
-        return self.documents             
+
+    def _instantiate_loader(self, filename):
+        self.loader = UnstructuredWordDocumentLoader(filename, mode="elements")
+
+    # def read_file(self, url, SLACK_BOT_TOKEN):
+    #     headers = {'Authorization': f'Bearer {SLACK_BOT_TOKEN}'}
+    #     logger.info(url)
+    #     filename = self.download_local_file(url, headers)
+    #     loader = UnstructuredWordDocumentLoader(filename, headers=headers)
+    #     self.documents = loader.load_and_split()
+    #     self.delete_local_file(filename)
+    #     return self.documents             
 
 class TxtHandler(Handler):
     def handle(self):
         return f"Handling txt file: {self.file}"  
     
-    def read_file(self, url, SLACK_BOT_TOKEN):
-        headers = {'Authorization': f'Bearer {SLACK_BOT_TOKEN}'}
-        logger.info(url)
-        filename = self.download_local_file(url, headers)
-        loader = UnstructuredFileLoader(filename, headers=headers)
-        self.documents = loader.load_and_split()
-        self.delete_local_file(filename)        
-        return self.documents     
+    def _instantiate_loader(self, filename):
+        self.loader = UnstructuredFileLoader(filename, mode="elements")
+    
+    # def read_file(self, url, SLACK_BOT_TOKEN):
+    #     headers = {'Authorization': f'Bearer {SLACK_BOT_TOKEN}'}
+    #     logger.info(url)
+    #     filename = self.download_local_file(url, headers)
+    #     loader = UnstructuredFileLoader(filename, headers=headers)
+    #     self.documents = loader.load_and_split()
+    #     self.delete_local_file(filename)        
+    #     return self.documents     
 
 class WebHandler(Handler):
 

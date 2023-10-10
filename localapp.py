@@ -315,14 +315,17 @@ def process_event(body, context):
             response = "No files found in this thread"
         else:
             file = most_recent_file[0]
-            response = doc_q_and_a(file.get('name'), channel_id, thread_ts, question)  
+            txt, blks = doc_q_and_a(file.get('name'), channel_id, thread_ts, question)  
 
         # update_chat(app, channel_id, reply_message_ts, response)
-        app.client.chat_update(
-                channel=channel_id,
-                ts=reply_message_ts,
-                blocks=response
-            )
+        if blks is not None:
+            app.client.chat_update(
+                    channel=channel_id,
+                    ts=reply_message_ts,
+                    blocks=blks
+                )
+        else:
+            update_chat(app, channel_id, reply_message_ts, txt)
     else:
         try:
             openai_response = get_completion_from_messages(messages)

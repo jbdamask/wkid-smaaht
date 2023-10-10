@@ -546,27 +546,34 @@ def doc_q_and_a(file, channel_id, thread_ts, question):
     llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo", openai_api_key=OPENAI_API_KEY)
     f = fileRegistry.get_files(file, channel_id, thread_ts)
     # db = f[0].get('chat').db
-    db = f[0].get('handler').db
+    handler = f[0].get('handler')
+    db = handler.db
+    # db = f[0].get('handler').db
     retriever = VectorStoreRetriever(vectorstore=db, search_kwargs={"filter": {"filename": file.split('/')[-1]}})
     qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents = True)
     response = qa(question)
-    s = []
-    for d in response.get('source_documents'):
-        filename = d.metadata.get('filename')
-        page = int(d.metadata.get('page'))  # convert page to int for proper sorting
-        content_snippit = d.page_content[:50]
-        s.append((filename, page, content_snippit))    
-    s = list(set(s))
-    s.sort(key=lambda x: x[1])  # sort by page number
-    md = '\n'.join(f"File: {filename}\tPage: {page}\tSnippit: {content_snippit}" for filename, page, content_snippit in s)
-    blocks = [
-        {
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": f"{response.get('result')}\n {md}"
+    if handler.file_type == "pdf":
+        s = []
+        for d in response.get('source_documents'):
+            filename = d.metadata.get('filename')
+            page = int(d.metadata.get('page'))  # convert page to int for proper sorting
+            # content_snippit = d.page_content[:50]
+            content_snippit = d.page_content
+            s.append((filename, page, content_snippit))    
+        s = list(set(s))
+        s.sort(key=lambda x: x[1])  # sort by page number
+        md = '\n'.join(f"File: {filename}\tPage: {page}\tSnippit: {content_snippit}" for filename, page, content_snippit in s)
+        blocks = [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"{response.get('result')}\n {md}"
+                }
             }
-        }
-    ]
-    return blocks
-    
+        ]
+        text = None
+        return text, blocks
+    else:
+        blocks = None
+        return response.get('result'), blocks
