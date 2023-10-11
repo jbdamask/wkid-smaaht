@@ -567,28 +567,39 @@ def doc_q_and_a(file, channel_id, thread_ts, question):
     retriever = VectorStoreRetriever(vectorstore=db, search_kwargs={"filter": {"filename": file.split('/')[-1]}})
     qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents = True)
     response = qa(question)
-    if handler.file_type == "pdf":
-        s = []
-        for d in response.get('source_documents'):
-            filename = d.metadata.get('filename')
-            page = int(d.metadata.get('page'))  # convert page to int for proper sorting
-            # content_snippit = d.page_content[:50]
-            content_snippit = d.page_content
-            s.append((filename, page, content_snippit))    
-        s = list(set(s))
-        s.sort(key=lambda x: x[1])  # sort by page number
-        md = '\n'.join(f"File: {filename}\tPage: {page}\tSnippit: {content_snippit}" for filename, page, content_snippit in s)
-        blocks = [
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"{response.get('result')}\n {md}"
-                }
+    # TODO I don't like how references are being returned. Remove until I have a better idea.
+    # if handler.file_type == "pdf":
+    #     s = []
+    #     for d in response.get('source_documents'):
+    #         filename = d.metadata.get('filename')
+    #         page = int(d.metadata.get('page'))  # convert page to int for proper sorting
+    #         # content_snippit = d.page_content[:50]
+    #         content_snippit = d.page_content
+    #         s.append((filename, page, content_snippit))    
+    #     s = list(set(s))
+    #     s.sort(key=lambda x: x[1])  # sort by page number
+    #     md = '\n'.join(f"File: {filename}\tPage: {page}\tSnippit: {content_snippit}" for filename, page, content_snippit in s)
+    #     blocks = [
+    #         {
+    #             "type": "section",
+    #             "text": {
+    #                 "type": "mrkdwn",
+    #                 "text": f"{response.get('result')}\n {md}"
+    #             }
+    #         }
+    #     ]
+    #     text = None
+    #     return text, blocks
+    # else:
+    #     blocks = None
+    #     return response.get('result'), blocks
+    blocks = [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"{response.get('result')}"
             }
-        ]
-        text = None
-        return text, blocks
-    else:
-        blocks = None
-        return response.get('result'), blocks
+        }
+    ]
+    return blocks
