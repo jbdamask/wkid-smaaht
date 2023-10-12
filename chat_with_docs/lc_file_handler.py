@@ -14,6 +14,11 @@ from langchain.vectorstores import Chroma
 from langchain.vectorstores import utils
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings import OpenAIEmbeddings
+# Necessary for ChromaDB to work on Fargate linux instances
+__import__('pysqlite3')
+import sys
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+# Necessary for ChromaDB to work on Fargate linux instances
 langchain.verbose = True
 # Configure logging
 logger = get_logger(__name__)

@@ -128,6 +128,7 @@ pyparsing==3.1.1
 pypdf==3.12.1
 pypdfium2==4.20.0
 PyPika==0.48.9
+pysqlite-binary==0.5.1.3380300
 pytesseract==0.3.10
 python-dateutil==2.8.2
 python-docx==0.8.11
