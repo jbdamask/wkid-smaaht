@@ -56,7 +56,7 @@ class Handler(abc.ABC):
         logger.info(url)
         filepath = self.download_local_file()        
         embeddings = OpenAIEmbeddings(openai_api_key = self.openai_api_key)
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         self.instantiate_loader(filepath)
         documents = self.loader.load()
         self.docs = text_splitter.split_documents(documents)

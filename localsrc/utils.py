@@ -39,7 +39,7 @@ from langchain.docstore.document import Document
 from langchain.vectorstores.base import VectorStoreRetriever
 from chat_with_docs.lc_file_handler import create_file_handler, FileRegistry
 # from chat_with_docs.chat_with_pdf import ChatWithDoc
-from chat_with_docs.prompt import CONCISE_SUMMARY_PROMPT
+from chat_with_docs.prompt import CONCISE_SUMMARY_PROMPT, CONCISE_SUMMARY_MAP_PROMPT, CONCISE_SUMMARY_COMBINE_PROMPT
 
 # Configure logging
 logger = get_logger(__name__)
@@ -471,13 +471,14 @@ def summarize_chain(docs, app, channel_id, reply_message_ts):
     llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k", openai_api_key=OPENAI_API_KEY)
     PROMPT = CONCISE_SUMMARY_PROMPT
     try:
-        chain = load_summarize_chain(llm, chain_type="stuff")
+        chain = load_summarize_chain(llm, chain_type="stuff", prompt=CONCISE_SUMMARY_COMBINE_PROMPT)
         result = chain.run(docs)
     except openai.error.InvalidRequestError as e:
         warn = "Document length exceeded model capacity. Changing strategy - please be patient"
         logger.warning(warn)
         update_chat(app, channel_id, reply_message_ts, warn)
-        chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=PROMPT, combine_prompt=PROMPT)
+        # chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=PROMPT, combine_prompt=PROMPT)
+        chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=CONCISE_SUMMARY_MAP_PROMPT, combine_prompt=CONCISE_SUMMARY_COMBINE_PROMPT)
         result = chain.run(docs)
     return result
 
