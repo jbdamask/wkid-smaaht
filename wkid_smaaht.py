@@ -12,7 +12,7 @@ from src.logger_config import get_logger
 import json
 
 # To test locally, change the next line from src.utils to localsrc.utils
-from src.utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,
+from localsrc.utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,
                    SLACK_APP_TOKEN, SLACK_BOT_TOKEN, WAIT_MESSAGE,
                    MAX_TOKENS, DEBUG, prompt, 
                    get_slack_thread, set_prompt_for_user_and_channel, generate_image,
@@ -249,7 +249,8 @@ def process_event(body, context):
     elif command_text.startswith(":websum "):
         update_chat(app, channel_id, reply_message_ts, "I'll try to summarize that page. This may take a minute (literally).")
         url = command_text.replace(":websum ", "").split("|")[0].replace("<","").replace(">","").strip()
-        response = summarize_web_page(url)
+        # register_file(url, channel_id, thread_ts)
+        response = summarize_web_page(url, app=app, channel_id=channel_id, thread_ts=thread_ts, reply_message_ts=reply_message_ts)
         update_chat(app, channel_id, reply_message_ts, response)    
     elif command_text.startswith(":listfiles"):
         update_chat(app, channel_id, reply_message_ts, "Listing available files")
@@ -288,37 +289,63 @@ def process_event(body, context):
     elif command_text.startswith(":qa "):
         question = command_text.replace(":qa ", "").strip()
         update_chat(app, channel_id, reply_message_ts, "Asking questions is a great way to learn! Give me a sec...")
-        # slack_resp = app.client.chat_postMessage(
-        #     channel=channel_id,
-        #     # thread_ts=thread_ts,
-        #     tread_ts = reply_message_ts,
-        #     text="Asking questions is a great way to learn! Give me a sec..."
-        # )
-        # reply_message_ts = slack_resp.get('message', {}).get('ts')
+
+        # Figure out what we're chatting with
         files = [message.get('files') for message in conversation_history.data.get('messages') if 'files' in message]
         # Get the most recent file
-        most_recent_file = files[-1] if files else None
-        if not most_recent_file:
-            response = "No files found in this thread"
-        else:
+        most_recent_file = files[-1] if files else None    
+        if most_recent_file:
             file = most_recent_file[0]
-            # TODO I'M NOT LIKING HOW METADATA IS FORMATTED. COMMENT OUT UNTIL I HAVE A BETTER IDEA
-            # txt, blks = doc_q_and_a(file.get('name'), channel_id, thread_ts, question)  
-            response = doc_q_and_a(file.get('name'), channel_id, thread_ts, question)
-        # TODO I'M NOT LIKING HOW METADATA IS FORMATTED. COMMENT OUT UNTIL I HAVE A BETTER IDEA
-        # if blks is not None:
-        #     app.client.chat_update(
-        #             channel=channel_id,
-        #             ts=reply_message_ts,
-        #             blocks=blks
-        #         )
+            response = doc_q_and_a(file.get('name'), channel_id, thread_ts, question) 
+            app.client.chat_update(
+                channel=channel_id,
+                ts=reply_message_ts,
+                blocks=response
+            )
+            return                       
+
+        # Hacky way to see if someone is chatting with a website
+        msgs = [message.get('text') for message in conversation_history.data.get('messages') if 'text' in message]
+        web_chats = [s for s in msgs if ':websum' in s]
+        if web_chats:
+            wc = web_chats[-1]
+            url = wc.replace(":websum ", "").split("|")[0].replace("<","").replace(">","").strip()
+            # This is how the file object is stored in FileRegistry
+            # f = {'name': url, 'id': url, 'url_private': url} 
+            response = doc_q_and_a(url, channel_id, thread_ts, question)
+            app.client.chat_update(
+                channel=channel_id,
+                ts=reply_message_ts,
+                blocks=response
+            )
+            return
+        
+        else:
+            response = "No files found in this thread"
+            update_chat(app, channel_id, reply_message_ts, response)
+
+        # if not most_recent_file:
+        #     response = "No files found in this thread"
+        #     update_chat(app, channel_id, reply_message_ts, response)
         # else:
-        #     update_chat(app, channel_id, reply_message_ts, txt)
-        app.client.chat_update(
-            channel=channel_id,
-            ts=reply_message_ts,
-            blocks=response
-        )
+        #     file = most_recent_file[0]
+        #     # TODO I'M NOT LIKING HOW METADATA IS FORMATTED. COMMENT OUT UNTIL I HAVE A BETTER IDEA
+        #     # txt, blks = doc_q_and_a(file.get('name'), channel_id, thread_ts, question)  
+        #     response = doc_q_and_a(file.get('name'), channel_id, thread_ts, question)
+        # # TODO I'M NOT LIKING HOW METADATA IS FORMATTED. COMMENT OUT UNTIL I HAVE A BETTER IDEA
+        # # if blks is not None:
+        # #     app.client.chat_update(
+        # #             channel=channel_id,
+        # #             ts=reply_message_ts,
+        # #             blocks=blks
+        # #         )
+        # # else:
+        # #     update_chat(app, channel_id, reply_message_ts, txt)
+        #     app.client.chat_update(
+        #         channel=channel_id,
+        #         ts=reply_message_ts,
+        #         blocks=response
+        #     )
     else:
         try:
             openai_response = get_completion_from_messages(messages)

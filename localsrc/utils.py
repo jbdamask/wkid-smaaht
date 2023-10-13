@@ -496,7 +496,8 @@ def summarize_web_page(url, app="", channel_id="", thread_ts="", reply_message_t
     Returns:
     str: The summarized content of the web page.
     """
-    handler = create_file_handler(url, OPENAI_API_KEY, webpage=True)
+    # handler = create_file_handler(url, OPENAI_API_KEY, SLACK_BOT_TOKEN, webpage=True)
+    handler = register_file(url, channel_id, thread_ts)
     docs = handler.read_file(url)
     return summarize_chain(docs, app, channel_id, reply_message_ts)
     
@@ -539,10 +540,28 @@ def register_file(file, channel_id, thread_ts):
     Returns:
     None
     """
+    # file = {'name': file, 'id': file, 'url_private': file}
     handler = create_file_handler(file, OPENAI_API_KEY, SLACK_BOT_TOKEN)
-    handler.download_and_store()
-    fileRegistry.add_file(file.get('name'), channel_id, thread_ts, file.get('id'), file.get('url_private'), handler)
-    return
+    if 'WebHandler' in str(type(handler)):
+        # file = {'name': file, 'id': file, 'url_private': file}
+        # fileRegistry.add_file(file, channel_id, thread_ts, file, file, handler)
+        handler.load_split_store()
+        # fileRegistry.add_file(file.get('name'), channel_id, thread_ts, file.get('id'), file.get('url_private'), handler)
+        fileRegistry.add_file(filename=file, 
+                              channel_id=channel_id, 
+                              thread_ts=thread_ts, 
+                              file_id=file, 
+                              url_private=file, 
+                              handler=handler)
+    else:
+        handler.download_and_store()
+        fileRegistry.add_file(filename=file.get('name'), 
+                              channel_id=channel_id, 
+                              thread_ts=thread_ts, 
+                              file_id=file.get('id'), 
+                              url_private=file.get('url_private'), 
+                              handler=handler)
+    return handler
 
 def doc_q_and_a(file, channel_id, thread_ts, question):
     """
@@ -565,7 +584,11 @@ def doc_q_and_a(file, channel_id, thread_ts, question):
     handler = f[0].get('handler')
     db = handler.db
     # db = f[0].get('handler').db
-    retriever = VectorStoreRetriever(vectorstore=db, search_kwargs={"filter": {"filename": file.split('/')[-1]}})
+    if 'WebHandler' in str(type(handler)):
+        search_kwargs={"filter": {"filename":file}}
+    else:
+        search_kwargs={"filter": {"filename": file.split('/')[-1]}}
+    retriever = VectorStoreRetriever(vectorstore=db, search_kwargs=search_kwargs)
     qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents = True)
     response = qa(question)
     # TODO I don't like how references are being returned. Remove until I have a better idea.

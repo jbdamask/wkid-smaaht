@@ -29,8 +29,9 @@ class Handler(abc.ABC):
 
     def __init__(self, file, openai_api_key, slack_bot_token):
         # _, file_extension = os.path.splitext(file)
-        _, file_extension = os.path.splitext(file.get('name'))
-        self.file_type = file_extension.lstrip('.').lower()
+        if not isinstance(file, str):
+            _, file_extension = os.path.splitext(file.get('name'))
+            self.file_type = file_extension.lstrip('.').lower()
         self.file = file
         self.openai_api_key = openai_api_key
         # self.slack_bot_token = slack_bot_token
@@ -53,8 +54,8 @@ class Handler(abc.ABC):
     def _read_file_content(self, url, SLACK_BOT_TOKEN) :
         headers = {'Authorization': f'Bearer {SLACK_BOT_TOKEN}'}
         response = requests.get(url, headers=headers)
-        return response.content
-    
+        return response.content  
+
     def download_and_store(self):
         # headers = {'Authorization': f'Bearer {self.slack_bot_token}'}
         url = self.file.get('url_private')
@@ -163,15 +164,7 @@ class TxtHandler(Handler):
     
     def instantiate_loader(self, filename):
         self.loader = UnstructuredFileLoader(filename, mode="elements")
-    
-    # def read_file(self, url, SLACK_BOT_TOKEN):
-    #     headers = {'Authorization': f'Bearer {SLACK_BOT_TOKEN}'}
-    #     logger.info(url)
-    #     filename = self.download_local_file(url, headers)
-    #     loader = UnstructuredFileLoader(filename, headers=headers)
-    #     self.documents = loader.load_and_split()
-    #     self.delete_local_file(filename)        
-    #     return self.documents     
+      
 
 class WebHandler(Handler):
 
@@ -181,6 +174,19 @@ class WebHandler(Handler):
     def instantiate_loader(self, filename):
         self.loader = WebBaseLoader(filename)
     
+    def load_split_store(self):
+        embeddings = OpenAIEmbeddings(openai_api_key = self.openai_api_key)
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+        # self.instantiate_loader(self.file.get('url_private'))
+        self.instantiate_loader(self.file)
+        documents = self.loader.load()
+        self.docs = text_splitter.split_documents(documents)
+        for idx, text in enumerate(self.docs):
+            self.docs[idx].metadata['filename'] = self.file
+            # self.docs[idx].metadata['filename'] = self.file.get('name')   
+        filtered_docs = utils.filter_complex_metadata(self.docs)
+        self.db = Chroma.from_documents(filtered_docs, embeddings)  
+
     def read_file(self, url):
         logger.info(url)
         loader = WebBaseLoader(url)
@@ -292,8 +298,13 @@ class HandlerFactory:
         return Handler(file, open_api_key, slack_bot_token)
 
 def create_file_handler(file, openai_api_key, slack_bot_token, webpage=False):
-    if webpage:
-        handler = WebHandler(file, openai_api_key)
+    # is_url = 'http://' in file.get('name') or 'https://' in file.get('name')
+    is_url = 'http://' in file or 'https://' in file
+    if is_url or webpage:
+        # file = {'name': file, 'id': file, 'url_private': file}
+        handler = WebHandler(file, openai_api_key, slack_bot_token)
+    # elif webpage:
+    #     handler = WebHandler(file, openai_api_key, slack_bot_token)
     else:
         handler = HandlerFactory.get_handler(file, openai_api_key, slack_bot_token)
     return handler
@@ -303,7 +314,7 @@ class FileRegistry:
         self.registry = {}
 
     # def add_file(self, filename, channel_id, thread_ts, file_id, private_url, handler, chatWithDoc):
-    def add_file(self, filename, channel_id, thread_ts, file_id, private_url, handler):
+    def add_file(self, filename, channel_id, thread_ts, file_id, url_private, handler):
         if filename not in self.registry:
             self.registry[filename] = {}
         key = (channel_id, thread_ts)
@@ -311,7 +322,7 @@ class FileRegistry:
             self.registry[filename][key] = []
         self.registry[filename][key].append(
                 {'file_id': file_id, 
-                 'private_url': private_url, 
+                 'private_url': url_private, 
                  'handler': handler, 
                 #  'chat': chatWithDoc,
                  })
