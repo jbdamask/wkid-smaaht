@@ -1,8 +1,10 @@
-
-# Borrowed heavily from 
-# https://learn.deeplearning.ai/chatgpt-building-system 
-# https://github.com/alex000kim/slack-gpt-bot
-
+###
+# SET ENVIRONMENT VARIABLE FOR LOCAL DEVELOPMENT. THIS WILL USE SYSTEM PROMPTS FROM LOCAL FILE.
+# FOR PRODUCTION DEPLOYMENT ON AWS, SYSTEM PROMPTS ARE READ FROM DYNAMODB
+# export ENV=development
+###
+from config import get_config
+Config = get_config()
 import os
 import openai
 from slack_bolt import App
@@ -31,7 +33,7 @@ app = App(token=SLACK_BOT_TOKEN)
 # Commands
 commands = [{'Command': ':pix', 'Description': 'Create image from text using Dall E 2', 'Example': '@W\'kid Smaaht :pix Cat in a flying taco'},
             {'Command': ':search', 'Description': 'Search the web', 'Example': '@W\'kid Smaaht :search Recent FDA approvals'},
-            {'Command': ':webchat', 'Description': 'Automatically summarize a web page and make it available for follow-up questions', 'Example': '@W\'kid Smaaht :webchat https://www.goodnewsnetwork.org/'},
+            {'Command': ':webchat', 'Description': 'Automatically summarize a web page and make it available for follow-up questions', 'Example': '@W\'kid Smaaht :webchat https://en.wikipedia.org/wiki/Ramones'},
             {'Command': ':summarize', 'Description': 'Summarize a document that\'s been uploaded to the channel or thread, immediately preceded by @W\kid Smaaht', 'Example': '@W\'kid Smaaht :summarize'},
             {'Command': ':qa', 'Description': 'Ask direct questions about an uploaded document or URL. If URL, you must first run :webchat', 'Example': '@W\'kid Smaaht :qa According to the document I just uploaded, why did the chicken cross the road?'},
             ]
@@ -319,7 +321,9 @@ def process_event(body, context):
         web_chats = [s for s in msgs if ':webchat' in s]
         if web_chats:
             wc = web_chats[-1]
-            wc = wc.split(f"<@{bot_user_id}>")[1].strip()
+            # TODO This won't help if Wkid Smaaht is referenced in the middle of a text or along with other user callouts
+            if wc.startswith('<@'):
+                wc = wc.split(f"<@{bot_user_id}>")[1].strip()
             url = wc.replace(":webchat ", "").split("|")[0].replace("<","").replace(">","").strip()
             # This is how the file object is stored in FileRegistry
             # f = {'name': url, 'id': url, 'url_private': url} 

@@ -1,8 +1,10 @@
 # utils.py
 # Includes various functions and plumbing code.
 # Not meant for re-use, but having this file makes it easier to read main application code
-from dotenv import load_dotenv, find_dotenv
-_ = load_dotenv(find_dotenv()) # read local .env file
+# from dotenv import load_dotenv, find_dotenv
+# _ = load_dotenv(find_dotenv()) # read local .env file
+from config import get_config
+Config = get_config()
 import os
 import re
 import boto3
@@ -44,6 +46,9 @@ from chat_with_docs.prompt import CONCISE_SUMMARY_PROMPT, CONCISE_SUMMARY_MAP_PR
 # Configure logging
 logger = get_logger(__name__)
 
+prompt = SystemPrompt(Config.PROMPT_STRATEGY)
+SYSTEM_PROMPT = prompt.get_prompt(Config.DEFAULT_PROMPT)
+
 # config = configparser.ConfigParser()
 # config.read('settings.ini')
 newconfig = use_config()
@@ -59,18 +64,15 @@ MODEL = "gpt-4"
 MAX_TOKENS = models[MODEL]["max_token"]
 
 SLACK_BOT_TOKEN = os.getenv('SLACK_BOT_TOKEN_WKID_SMAAHT')
-# SLACK_BOT_TOKEN = os.getenv('SLACK_BOT_TOKEN')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY_WKID_SMAAHT')
-# OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 SLACK_APP_TOKEN = os.getenv('SLACK_APP_TOKEN_WKID_SMAAHT')
-# SLACK_APP_TOKEN = os.getenv('SLACK_APP_TOKEN')
 
 openai.api_key = OPENAI_API_KEY
 
 delimiter = "####"
 # #### EXAMPLE OF GETTING SYSTEM PROMPT FROM LOCAL FILE
-prompt = SystemPrompt(FilePromptStrategy(file_path='gpt4_system_prompts'))
-SYSTEM_PROMPT = prompt.get_prompt('default-system-prompt.txt')
+# prompt = SystemPrompt(FilePromptStrategy(file_path='gpt4_system_prompts'))
+# SYSTEM_PROMPT = prompt.get_prompt('default-system-prompt.txt')
 
 #### EXAMPLE OF GETTING SYSTEM PROMPT FROM S3
 
