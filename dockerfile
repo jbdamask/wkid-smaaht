@@ -20,6 +20,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src/ /app/src/
 COPY gpt4_system_prompts/ /app/gpt4_system_prompts/
 COPY chat_with_docs/ /app/chat_with_docs/
+COPY config/ /app/config/
 COPY wkid_smaaht.py /app/
 
 # Set PYTHONUNBUFFERED environment variable
