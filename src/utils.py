@@ -52,7 +52,7 @@ SYSTEM_PROMPT = prompt.get_prompt(Config.DEFAULT_PROMPT)
 newconfig = use_config()
 newconfig.set("DEFAULT", "EXTRACTION_TIMEOUT", "0")
 
-DEBUG = False
+DEBUG = Config.DEBUG
 models = {
     "gpt-3.5-turbo": {"max_token": 4096, "description": "Most capable GPT-3.5 model and optimized for chat at 1/10th the cost of text-davinci-003. Will be updated with our latest model iteration 2 weeks after it is released."},
     "gpt-4": {"max_token": 8192, "description": "More capable than any GPT-3.5 model, able to do more complex tasks, and optimized for chat. Will be updated with our latest model iteration 2 weeks after it is released."},
@@ -439,7 +439,7 @@ def search_and_chat(messages, text):
     )
     llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k", openai_api_key=OPENAI_API_KEY, streaming=True)
     tools = [DuckDuckGoSearchResults(name="Search")]
-    chat_agent = ConversationalChatAgent.from_llm_and_tools(llm=llm, tools=tools)
+    chat_agent = ConversationalChatAgent.from_llm_and_tools(llm=llm, tools=tools, verbose=DEBUG)
     executor = AgentExecutor.from_agent_and_tools(
         agent=chat_agent,
         tools=tools,
@@ -471,14 +471,14 @@ def summarize_chain(docs, app, channel_id, reply_message_ts):
     llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k", openai_api_key=OPENAI_API_KEY)
     PROMPT = CONCISE_SUMMARY_PROMPT
     try:
-        chain = load_summarize_chain(llm, chain_type="stuff", prompt=CONCISE_SUMMARY_COMBINE_PROMPT, verbose=False)
+        chain = load_summarize_chain(llm, chain_type="stuff", prompt=CONCISE_SUMMARY_COMBINE_PROMPT, verbose=DEBUG)
         result = chain.run(docs)
     except openai.error.InvalidRequestError as e:
         warn = "Document length exceeded model capacity. Changing strategy - please be patient"
         logger.warning(warn)
         update_chat(app, channel_id, reply_message_ts, warn)
         # chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=PROMPT, combine_prompt=PROMPT)
-        chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=CONCISE_SUMMARY_MAP_PROMPT, combine_prompt=CONCISE_SUMMARY_COMBINE_PROMPT, verbose=False)
+        chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=CONCISE_SUMMARY_MAP_PROMPT, combine_prompt=CONCISE_SUMMARY_COMBINE_PROMPT, verbose=DEBUG)
         result = chain.run(docs)
     return result
 
@@ -589,7 +589,7 @@ def doc_q_and_a(file, channel_id, thread_ts, question):
     else:
         search_kwargs={"filter": {"filename": file.split('/')[-1]}}
     retriever = VectorStoreRetriever(vectorstore=db, search_kwargs=search_kwargs)
-    qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents = True)
+    qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents = True, verbose=DEBUG)
     response = qa(question)
     # TODO I don't like how references are being returned. Remove until I have a better idea.
     # if handler.file_type == "pdf":
