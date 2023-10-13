@@ -295,9 +295,9 @@ W'kid Smaaht will register the file internally and this command will create an a
 <img src="images/wkid_smaaht_doc_summary.png" alt="Allow" width="500">
 
 ### :qa
-This feature lets you effectively chat with your document (uploaded into Slack) or URL (by first running :webchat). It is especially useful if you know what you want.
+This feature lets you chat with your document (uploaded into Slack) or URL (by first running :webchat). It is especially useful if you know what you want.
 
-Experience shows this feature has a ways to go. It's great for certain things but lacking in others. For example, it isn't aware of document structure and doesn't handle table well. This makes it so-so for Q&A against scientific articles. We expect this feature to improve over time. 
+Experience shows this feature has a ways to go. It's great for certain things but lacking in others. For example, it isn't aware of document structure and doesn't handle tables well. This makes it so-so for Q&A against scientific articles. We expect this feature to improve over time. 
 
 <img src="images/wkid_smaaht_qa.png" alt="Allow" width="500">
 
