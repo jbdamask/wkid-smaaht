@@ -1,7 +1,8 @@
 # utils.py
 # Includes various functions and plumbing code.
 # Not meant for re-use, but having this file makes it easier to read main application code
-
+from config import get_config
+Config = get_config()
 import os
 import re
 import boto3
@@ -24,27 +25,34 @@ from src.system_prompt import SystemPrompt, FilePromptStrategy, DynamoDBPromptSt
 from src.chat_manager import ChatManager
 from langchain.tools import DuckDuckGoSearchResults
 from langchain.agents import ConversationalChatAgent, AgentExecutor
+from langchain.agents.agent_toolkits import create_conversational_retrieval_agent
+from langchain.agents.agent_toolkits import create_retriever_tool
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.callbacks import StdOutCallbackHandler
 from langchain.memory.chat_message_histories import ChatMessageHistory
 from langchain.document_loaders import WebBaseLoader
 from langchain.chains.summarize import load_summarize_chain
+from langchain.chains import ConversationalRetrievalChain, RetrievalQA
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.docstore.document import Document
-from chat_with_docs.lc_file_handler import create_file_handler
-from chat_with_docs.prompt import CONCISE_SUMMARY_PROMPT
+from langchain.vectorstores.base import VectorStoreRetriever
+from chat_with_docs.lc_file_handler import create_file_handler, FileRegistry
+# from chat_with_docs.chat_with_pdf import ChatWithDoc
+from chat_with_docs.prompt import CONCISE_SUMMARY_PROMPT, CONCISE_SUMMARY_MAP_PROMPT, CONCISE_SUMMARY_COMBINE_PROMPT
 
 # Configure logging
 logger = get_logger(__name__)
 
+prompt = SystemPrompt(Config.PROMPT_STRATEGY)
+SYSTEM_PROMPT = prompt.get_prompt(Config.DEFAULT_PROMPT)
 
 # config = configparser.ConfigParser()
 # config.read('settings.ini')
 newconfig = use_config()
 newconfig.set("DEFAULT", "EXTRACTION_TIMEOUT", "0")
 
-DEBUG = False
+DEBUG = Config.DEBUG
 models = {
     "gpt-3.5-turbo": {"max_token": 4096, "description": "Most capable GPT-3.5 model and optimized for chat at 1/10th the cost of text-davinci-003. Will be updated with our latest model iteration 2 weeks after it is released."},
     "gpt-4": {"max_token": 8192, "description": "More capable than any GPT-3.5 model, able to do more complex tasks, and optimized for chat. Will be updated with our latest model iteration 2 weeks after it is released."},
@@ -65,8 +73,8 @@ delimiter = "####"
 # SYSTEM_PROMPT = prompt.get_prompt('gpt4_system_prompts/chataws-system-prompt.txt')
 
 #### EXAMPLE OF GETTING SYSTEM PROMPT FROM DYNAMODB TABLE
-prompt = SystemPrompt(DynamoDBPromptStrategy(table_name='GPTSystemPrompts'))
-SYSTEM_PROMPT = prompt.get_prompt('default')
+# prompt = SystemPrompt(DynamoDBPromptStrategy(table_name='GPTSystemPrompts'))
+# SYSTEM_PROMPT = prompt.get_prompt('default')
 
 #### EXAMPLE OF GETTING SYSTEM PROMPT FROM S3
 
@@ -74,6 +82,8 @@ SYSTEM_PROMPT = prompt.get_prompt('default')
 # This will be populated with ChatManager objects and keyed 
 # by Slack user_id
 cache = LRUCache(maxsize=100)
+# fileHandlerCache = LRUCache(maxsize=100)
+fileRegistry = FileRegistry()
 
 # Store the GPT4 systemp prompt for the user in the particular channel
 def set_prompt_for_user_and_channel(user_id, channel_id, prompt_key):
@@ -138,8 +148,18 @@ def moderate_messages(messages):
         logger.debug(f"Moderation error: {e}")
         return False
 
-# Where's the beef? Oh, it's here
 def prepare_payload(body, context):
+    """
+    This function prepares the payload for a chat event. It extracts the bot user ID, channel ID, thread timestamp, 
+    user ID, and command text from the event body and context.
+
+    Parameters:
+    body (dict): The body of the event.
+    context (dict): The context of the event.
+
+    Returns:
+    tuple: A tuple containing the bot user ID, channel ID, thread timestamp, user ID, and command text.
+    """
     event = body.get('event')
     if event is None:
         return None
@@ -147,14 +167,10 @@ def prepare_payload(body, context):
     channel_id = event.get('channel')
     thread_ts = event.get('thread_ts', event.get('ts'))
     user_id = event.get('user', context.get('user_id'))
-
     if f"<@{bot_user_id}" in event.get('text'):
         command_text = event.get('text').split(f"<@{bot_user_id}>")[1].strip()
-    # elif ":snc" in event.get('text'):
-    #     command_text = event.get('text').replace(":snc ", "").strip()
     else:
         command_text = event.get('text')
-
     return bot_user_id, channel_id, thread_ts, user_id, command_text
 
 
@@ -238,31 +254,49 @@ def num_tokens_from_messages(messages, model="gpt-4"):
 
 # Retrieve text from the Slack conversation thread
 def get_conversation_history(app, channel_id, thread_ts):
+    """
+    This function retrieves the conversation history of a specific thread in a channel using the Slack API.
+
+    Parameters:
+    app (object): The application instance.
+    channel_id (str): The ID of the channel where the thread is located.
+    thread_ts (str): The timestamp of the thread.
+
+    Returns:
+    history (dict): The conversation history of the thread.
+    """
     history = app.client.conversations_replies(
         channel=channel_id,
         ts=thread_ts,
         inclusive=True
     )
-    logger.debug(type(history))
-    logger.debug(history)
     return history
 
-# This builds the message object, including any previous interactions in the thread
 def process_conversation_history(conversation_history, bot_user_id, channel_id, thread_ts, user_id):
+    """
+    This function processes the conversation history in a chat. It checks for a ChatManager object for the user and 
+    a Channel object for the channel. If found, it retrieves the appropriate system prompt. It then processes each 
+    message in the conversation history and appends it to a list of messages.
+
+    Parameters:
+    conversation_history (dict): The conversation history.
+    bot_user_id (str): The ID of the bot user.
+    channel_id (str): The ID of the channel.
+    thread_ts (str): The timestamp of the thread.
+    user_id (str): The ID of the user.
+
+    Returns:
+    messages (list): A list of processed messages from the conversation history.
+    """
     sp = SYSTEM_PROMPT
     cm = cache.get(user_id)
     if cm is not None:
-        logger.debug(f"Found ChatManager object for user {user_id}")        
         channel = cm.get_channel(channel_id)
         if channel is not None:
-            logger.debug(f"Found Channel object for channel {channel_id}")              
             found = False
             for thread, prompt_key in channel.items():  
                 if thread_ts == thread:  
                     found = True
-                    logger.debug(f"Found object for thread {thread_ts}")         
-                    # prompt_key is now already the correct value, so no need to index
-                    logger.debug(f"Found prompt key: {prompt_key}")
                     sp = prompt.get_prompt(prompt_key)            
             if not found:
                 sp = cm.prompt_key
@@ -274,51 +308,78 @@ def process_conversation_history(conversation_history, bot_user_id, channel_id, 
     for message in conversation_history['messages'][:-1]:
         role = "assistant" if message['user'] == bot_user_id else "user"
         message_text = process_message(message, bot_user_id)
-        logger.debug(f"message_text: {message_text}")
         if message_text:
             messages.append({"role": role, "content": message_text})
     logger.info(messages)
     return messages
 
-
 def process_message(message, bot_user_id):
-    logger.debug("process_message(message, bot_user_id)")
-    logger.debug(f"message: {message['text']}")
-    logger.debug(f"bot_user_id: {bot_user_id}")
-    logger.debug(f"user: {message['user']}")
+    """
+    This function determines the role of the message sender and cleans 
+    the message text accordingly.
 
+    Parameters:
+    message (dict): The message to be processed.
+    bot_user_id (str): The ID of the bot user.
+
+    Returns:
+    str: The cleaned message text.
+    """
     message_text = message['text']
     role = "assistant" if message['user'] == bot_user_id else "user"
-    if role == "user":
-        url_list = extract_url_list(message_text)
-        if url_list:
-            message_text = augment_user_message(message_text, url_list)
-
-    logger.debug(f"role: {role}")
-    logger.debug(f"augmented user message: {message_text}")
-    message_text = clean_message_text(message_text, role, bot_user_id)
-
-    logger.debug(f"cleaned message text: {message_text}")    
-    return message_text
-
-
-def clean_message_text(message_text, role, bot_user_id):
     if (f'<@{bot_user_id}>' in message_text) or (role == "assistant"):
         message_text = message_text.replace(f'<@{bot_user_id}>', '').strip()
-        # return message_text
+    # message_text = clean_message_text(message_text, role, bot_user_id)
     return message_text
-    # return None
 
+# def clean_message_text(message_text, role, bot_user_id):
+#     """
+#     This function cleans the text of a message. If the message is from the bot or mentions the bot, it removes the 
+#     bot's mention from the text.
+
+#     Parameters:
+#     message_text (str): The text of the message.
+#     role (str): The role of the message sender.
+#     bot_user_id (str): The ID of the bot user.
+
+#     Returns:
+#     str: The cleaned message text.
+#     """
+#     if (f'<@{bot_user_id}>' in message_text) or (role == "assistant"):
+#         message_text = message_text.replace(f'<@{bot_user_id}>', '').strip()
+#     return message_text
 
 def update_chat(app, channel_id, reply_message_ts, response_text):
+    """
+    This function updates a chat message in a specific channel using the Slack API. It takes in the application 
+    instance, channel ID, timestamp of the message to be updated, and the new text for the message.
+
+    Parameters:
+    app (object): The application instance.
+    channel_id (str): The ID of the channel where the message is located.
+    reply_message_ts (str): The timestamp of the message to be updated.
+    response_text (str): The new text for the message.
+
+    Returns:
+    None
+    """
     r = app.client.chat_update(
         channel=channel_id,
         ts=reply_message_ts,
         text=response_text
     )
-    print(r)
 
 def generate_image(iPrompt):
+    """
+    This function generates an image using OpenAI's Image API based on a given prompt. It then constructs a response 
+    in a specific format that includes the image URL.
+
+    Parameters:
+    iPrompt (str): The prompt used to generate the image.
+
+    Returns:
+    j (dict): A dictionary containing the response type, blocks, and image details.
+    """
     response = openai.Image.create(prompt=iPrompt, n=1, size="512x512")
     j = {
         "response_type": "in_channel",
@@ -337,13 +398,17 @@ def generate_image(iPrompt):
     }
     return j
 
-# We're not using long-term langchain memory in this app.
-# Instead, we let Slack track history, grab it from whatever
-# thread is in scope, and copy it to LangChain history if
-# we need it.
-# Note that the role definitions are from OpenAI and
-# may not translate to other models
 def copy_history_to_langchain(message):
+    """
+    This function copies the chat history from Slack to LangChain. It iterates through each message and adds it to 
+    the LangChain history based on the role of the message sender.
+
+    Parameters:
+    message (list): A list of messages from the chat history.
+
+    Returns:
+    msgs (ChatMessageHistory): The chat history in LangChain format.
+    """
     msgs = ChatMessageHistory()
     for m in message:
         if m.get('role') == 'system':
@@ -352,20 +417,29 @@ def copy_history_to_langchain(message):
             msgs.add_user_message(m.get('content'))
         elif m.get('role') == 'assistant':
             msgs.add_ai_message(m.get('content'))
-
     return msgs
 
+
 def search_and_chat(messages, text):
-    # Build LangChain memory from Slack chat history
+    """
+    This function loads Slack chat history into LangChain memory, initializes a ChatOpenAI instance, and sets up a 
+    conversational chat agent with DuckDuckGo search results. It then executes the agent with the given text and 
+    returns the output.
+
+    Parameters:
+    messages (list): A list of messages from Slack chat history.
+    text (str): The text to be processed by the chat agent.
+
+    Returns:
+    str: The output from the chat agent.
+    """
     msgs = copy_history_to_langchain(messages)
-    # I don't think i need this next line because the text message is already in the history
-    # msgs.add_user_message(text)
     memory = ConversationBufferMemory(
         chat_memory=msgs, return_messages=True, memory_key="chat_history", output_key="output"
     )
     llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k", openai_api_key=OPENAI_API_KEY, streaming=True)
     tools = [DuckDuckGoSearchResults(name="Search")]
-    chat_agent = ConversationalChatAgent.from_llm_and_tools(llm=llm, tools=tools)
+    chat_agent = ConversationalChatAgent.from_llm_and_tools(llm=llm, tools=tools, verbose=DEBUG)
     executor = AgentExecutor.from_agent_and_tools(
         agent=chat_agent,
         tools=tools,
@@ -373,32 +447,183 @@ def search_and_chat(messages, text):
         return_intermediate_steps=True,
         handle_parsing_errors=True,
     )    
-
     st_cb = StdOutCallbackHandler()
     response = executor(text, callbacks=[st_cb])
     return response["output"]
 
 
-def summarize_chain(docs):
+def summarize_chain(docs, app, channel_id, reply_message_ts):
+    """
+    This function runs a LangChain summarization chain on a set of documents. It initializes a ChatOpenAI 
+    instance with a fast model and large context window, loads a summarization chain with specific prompts, 
+    runs the chain on the documents, and returns the result.
+
+    Parameters:
+    docs (list): The documents to be summarized.
+    app (object): The Slack application object.
+    channel_id (str): The ID of the channel where the chat is happening.
+    reply_message_ts (str): The timestamp of the message to which the bot is replying.
+    
+    Returns:
+    result (str): The summarized result.
+    """
+    
     llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k", openai_api_key=OPENAI_API_KEY)
     PROMPT = CONCISE_SUMMARY_PROMPT
-    chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=PROMPT, combine_prompt=PROMPT)
-    result = chain.run(docs)
+    try:
+        chain = load_summarize_chain(llm, chain_type="stuff", prompt=CONCISE_SUMMARY_COMBINE_PROMPT, verbose=DEBUG)
+        result = chain.run(docs)
+    except openai.error.InvalidRequestError as e:
+        warn = "Document length exceeded model capacity. Changing strategy - please be patient"
+        logger.warning(warn)
+        update_chat(app, channel_id, reply_message_ts, warn)
+        # chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=PROMPT, combine_prompt=PROMPT)
+        chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=CONCISE_SUMMARY_MAP_PROMPT, combine_prompt=CONCISE_SUMMARY_COMBINE_PROMPT, verbose=DEBUG)
+        result = chain.run(docs)
     return result
 
-def summarize_web_page(url):
-    loader = WebBaseLoader(url)
-    loader = loader
-    docs = loader.load_and_split()
-    return summarize_chain(docs)
+def summarize_web_page(url, app="", channel_id="", thread_ts="", reply_message_ts=""):
+    """
+    This function summarizes the content of a web page. It creates a file handler using the OpenAI API key, reads the 
+    web page content, and then summarizes it.
+
+    Parameters:
+    url (str): The URL of the web page to be summarized.
+    app (object): The Slack application object.
+    channel_id (str): The ID of the channel where the chat is happening.
+    reply_message_ts (str): The timestamp of the message to which the bot is replying.    
+
+    Returns:
+    str: The summarized content of the web page.
+    """
+    # handler = create_file_handler(url, OPENAI_API_KEY, SLACK_BOT_TOKEN, webpage=True)
+    handler = register_file(url, channel_id, thread_ts)
+    docs = handler.read_file(url)
+    return summarize_chain(docs, app, channel_id, reply_message_ts)
     
-# Method to handle file uploads
-def summarize_file(app,body, context):
-    logger.info(f"File: {body['event']['files'][0]['name']}")
-    handler = create_file_handler(body['event']['files'][0]['name'], OPENAI_API_KEY)
-    file_id = body['event']['files'][0]['id']
-    result = app.client.files_info(file=file_id)    
-    file_info = result['file']    
-    docs = handler.read_file(file_info['url_private'], SLACK_BOT_TOKEN)
-    result = summarize_chain(docs)
+# Throw doc to a summarize chain
+def summarize_file(file, app, channel_id, thread_ts, reply_message_ts):
+    """
+    This function summarizes the content of a file. It creates a file handler using the OpenAI API key, reads the file 
+    from a private URL using the Slack bot token, and then summarizes the document content.
+
+    Parameters:
+    file (dict): A dictionary containing file information.
+    app (object): The application object.
+    channel_id (str): The ID of the channel where the chat is happening.
+    thread_ts (str): The timestamp of the thread where the file is located.
+    reply_message_ts (str): The timestamp of the message to which the bot is replying.    
+
+    Returns:
+    result (str): The summarized content of the file.
+    """
+    f = fileRegistry.get_files(file, channel_id, thread_ts)
+    handler = f[0].get('handler')
+    filepath = handler.download_local_file()
+    handler.instantiate_loader(filepath)
+    documents = handler.loader.load()
+    result = summarize_chain(documents, app, channel_id, reply_message_ts)
+    handler.delete_local_file(filepath)
     return result
+
+def register_file(file, channel_id, thread_ts):
+    """
+    This function registers a file with the system. It creates a file handler using the OpenAI API key, reads the file 
+    from a private URL using the Slack bot token, and loads the document into a ChatWithDoc object. The file is then added to the 
+    file registry with its name, channel ID, thread timestamp, file ID, private URL, handler, and chat object.
+
+    Parameters:
+    file (dict): A dictionary containing file information.
+    channel_id (str): The ID of the channel where the file is located.
+    thread_ts (str): The timestamp of the thread where the file is located.
+
+    Returns:
+    None
+    """
+    # file = {'name': file, 'id': file, 'url_private': file}
+    handler = create_file_handler(file, OPENAI_API_KEY, SLACK_BOT_TOKEN)
+    if 'WebHandler' in str(type(handler)):
+        # file = {'name': file, 'id': file, 'url_private': file}
+        # fileRegistry.add_file(file, channel_id, thread_ts, file, file, handler)
+        handler.load_split_store()
+        # fileRegistry.add_file(file.get('name'), channel_id, thread_ts, file.get('id'), file.get('url_private'), handler)
+        fileRegistry.add_file(filename=file, 
+                              channel_id=channel_id, 
+                              thread_ts=thread_ts, 
+                              file_id=file, 
+                              url_private=file, 
+                              handler=handler)
+    else:
+        handler.download_and_store()
+        fileRegistry.add_file(filename=file.get('name'), 
+                              channel_id=channel_id, 
+                              thread_ts=thread_ts, 
+                              file_id=file.get('id'), 
+                              url_private=file.get('url_private'), 
+                              handler=handler)
+    return handler
+
+def doc_q_and_a(file, channel_id, thread_ts, question):
+    """
+    This function answers questions about a file.
+    
+    Parameters:
+    file (str): The name of the file to retrieve.
+    channel_id (str): The ID of the Slack channel where the file was uploaded.
+    thread_ts (str): The timestamp of the Slack thread where the file was uploaded.
+    question (str): The question to be answered.
+    
+    Returns:
+    response (str): The response from the RetrievalQA run method.
+    
+    Note: This function uses the OpenAI API and requires the OPENAI_API_KEY to be set.
+    """
+    llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo", openai_api_key=OPENAI_API_KEY)
+    f = fileRegistry.get_files(file, channel_id, thread_ts)
+    # db = f[0].get('chat').db
+    handler = f[0].get('handler')
+    db = handler.db
+    # db = f[0].get('handler').db
+    if 'WebHandler' in str(type(handler)):
+        search_kwargs={"filter": {"filename":file}}
+    else:
+        search_kwargs={"filter": {"filename": file.split('/')[-1]}}
+    retriever = VectorStoreRetriever(vectorstore=db, search_kwargs=search_kwargs)
+    qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents = True, verbose=DEBUG)
+    response = qa(question)
+    # TODO I don't like how references are being returned. Remove until I have a better idea.
+    # if handler.file_type == "pdf":
+    #     s = []
+    #     for d in response.get('source_documents'):
+    #         filename = d.metadata.get('filename')
+    #         page = int(d.metadata.get('page'))  # convert page to int for proper sorting
+    #         # content_snippit = d.page_content[:50]
+    #         content_snippit = d.page_content
+    #         s.append((filename, page, content_snippit))    
+    #     s = list(set(s))
+    #     s.sort(key=lambda x: x[1])  # sort by page number
+    #     md = '\n'.join(f"File: {filename}\tPage: {page}\tSnippit: {content_snippit}" for filename, page, content_snippit in s)
+    #     blocks = [
+    #         {
+    #             "type": "section",
+    #             "text": {
+    #                 "type": "mrkdwn",
+    #                 "text": f"{response.get('result')}\n {md}"
+    #             }
+    #         }
+    #     ]
+    #     text = None
+    #     return text, blocks
+    # else:
+    #     blocks = None
+    #     return response.get('result'), blocks
+    blocks = [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"{response.get('result')}"
+            }
+        }
+    ]
+    return blocks

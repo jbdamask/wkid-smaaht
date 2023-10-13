@@ -17,8 +17,9 @@ from localsrc.utils import (N_CHUNKS_TO_CONCAT_BEFORE_UPDATING, OPENAI_API_KEY,
                    get_slack_thread, set_prompt_for_user_and_channel, generate_image,
                    num_tokens_from_messages, process_conversation_history,
                    update_chat, moderate_messages, get_completion_from_messages,
-                   prepare_payload, get_conversation_history, process_message, search_and_chat,
-                   summarize_web_page, summarize_file)  # added imports here
+                   prepare_payload, get_conversation_history, #process_message, 
+                   search_and_chat,
+                   summarize_web_page, summarize_file, register_file, doc_q_and_a)  # added imports here
 
 # Configure logging
 logger = get_logger(__name__)
@@ -102,32 +103,18 @@ def handle_message_events(body, context, logger):
     if 'subtype' in body['event']:
         # If the subtype is 'file_share', do something
         if body['event']['subtype'] == 'file_share':
-            deal_with_file(body, context, logger)
+            deal_with_file(body, context)
     else:
         process_event(body, context)
-
-# # Listens for DM file uploads
-# @app.event({"type": "message", "subtype": "file_share"})
-# def handle_file(body, context, logger):
-#     event_router(body, context)
-#     # logger.info(body)
-#     # print(create_file_handler(body['event']['files'][0]['name']))
-#     # process_chat(body, context)
-#     if not is_it_bot():
-#         # global CNT
-#         # logger.info(f"handle_file event: {CNT}")
-#         # CNT += 1
-#         deal_with_file(body, context, logger)
 
 # Process app mention events
 @app.event("app_mention")
 def command_handler(body, context):
     # event_router(body, context)
-    if 'subtype' in body['event']:
-        # If the subtype is 'file_share', do something
-        if body['event']['subtype'] == 'file_share':
-            deal_with_file(body, context, logger)
-    else:
+    event = body.get('event')
+    if event.get('files') is not None:
+        deal_with_file(body, context)   
+    else:   
         process_event(body, context)
 
 # Checks to see if a post is from the W'kid Smaaht bot. 
@@ -140,62 +127,21 @@ def is_it_bot(body):
     else:
         return False
 
-# Conditional logic to handle Slack events
-# def event_router(body, context):
-#     event = body.get('event', {})
-#     text = event.get('text', '')
-#     thread_id=event.get('ts')
-#     channel_id = event.get('channel', '')
-#     subtype = event.get('subtype')
-
-#     if event.get('type') == 'app_mention':
-#         # Your code to handle app mentions goes here
-#         slack_resp = app.client.chat_postMessage(
-#             channel=channel_id,
-#             thread_ts=thread_id,
-#             text=f"Received App mention event of type {event['type']} in {channel_id} SubType: {subtype}"
-#         )
-#     elif channel_id.startswith('D') and not text.startswith('<@'):
-#         # Your code to handle non-mention DMs goes here
-#         slack_resp = app.client.chat_postMessage(
-#             channel=channel_id,
-#             thread_ts=thread_id,
-#             text=f"Received DM event of type {event['type']} in {channel_id} SubType: {subtype}"
-#         )
-
 # Processes file upload
-def deal_with_file(body, context, logger):
-    channel_id=body['event']['channel']
-    thread_id=body['event']['ts']
+def deal_with_file(body, context):
+    event = body.get('event')
+    channel_id=event.get('channel')
+    thread_id = event.get('thread_ts') if event.get('thread_ts') is not None else event.get('ts')
     slack_resp = app.client.chat_postMessage(
         channel=channel_id,
         thread_ts=thread_id,
-        text="Ah, I see you uploaded a file. Give me a minute to summarize it for you."
+        # text="Ah, I see you uploaded a file. Give me a minute to summarize it for you."
+        text="Registering doc..."
     )
-    reply_message_ts = slack_resp.get('message', {}).get('ts')    
-    response = ''
-    try:
-        response = summarize_file(app, body, context)
-    except ValueError as e:
-        response = f"Sorry, I can't process files of type: {e}"
-
-    update_chat(app, channel_id, reply_message_ts, response)  
-
-def chat_with_file(body, context, logger):
-    channel_id=body['event']['channel']
-    thread_id=body['event']['ts']
-    slack_resp = app.client.chat_postMessage(
-        channel=channel_id,
-        thread_ts=thread_id,
-        text="Ah, I see you uploaded a file. I'll load it so you can ask questions."
-    )
-    reply_message_ts = slack_resp.get('message', {}).get('ts')    
-    response = ''
-    try:
-        response = chat_with_doc(app, body, context)
-    except ValueError as e:
-        response = f"Sorry, I can't process files of type: {e}"
-
+    reply_message_ts = slack_resp.get('message', {}).get('ts')
+    filepath = body['event']['files'][0]['name']
+    register_file(body['event']['files'][0], channel_id, thread_id)
+    response = "What would you like to do with this? You can ask me to summarize it or ask questions"
     update_chat(app, channel_id, reply_message_ts, response) 
 
 # Where the magic happens
@@ -209,15 +155,6 @@ def process_event(body, context):
         return False
     
     bot_user_id, channel_id, thread_ts, user_id, command_text = prepare_payload(body, context)
-    
-    if any(var is None for var in [bot_user_id, channel_id, thread_ts, user_id, command_text]):
-        logger.error("process_event problem. Check body object")
-        app.client.chat_postMessage(
-            channel=channel_id,
-            thread_ts=thread_ts,
-            text=f"Something went wrong."
-        )
-        return
     
     if (command_text==WAIT_MESSAGE) or (command_text.startswith("/")):
         # No processing needed if the message was generated by this bot or is a Slack slash command
@@ -249,7 +186,8 @@ def process_event(body, context):
     
     messages = process_conversation_history(conversation_history, bot_user_id, channel_id, thread_ts, user_id)
     num_tokens = num_tokens_from_messages(messages)
-
+    # TODO: CAN I CONVERT SOME OF THESE TO OPENAI FUNCTIONS?
+    # https://platform.openai.com/docs/guides/gpt/function-calling
     if command_text.startswith(":pix "):
         image_text = command_text.replace(":pix ", "").strip()
         if image_text:
@@ -287,9 +225,76 @@ def process_event(body, context):
     elif command_text.startswith(":websum "):
         update_chat(app, channel_id, reply_message_ts, "I'll try to summarize that page. This may take a minute (literally).")
         url = command_text.replace(":websum ", "").split("|")[0].replace("<","").replace(">","").strip()
-        logger.info("Dude! WTF??" + url)
         response = summarize_web_page(url)
-        update_chat(app, channel_id, reply_message_ts, response)      
+        update_chat(app, channel_id, reply_message_ts, response)    
+    elif command_text.startswith(":listfiles"):
+        update_chat(app, channel_id, reply_message_ts, "Listing available files")
+        # response = list_files_in_thread(channel_id, thread_ts)
+        files = [message.get('files') for message in conversation_history.data.get('messages') if 'files' in message]
+        chat_dict = {}
+        # If you're not sure whether the tuple key exists yet
+        if (channel_id, thread_ts) not in chat_dict:
+            chat_dict[(channel_id, thread_ts)] = []
+        id = 1
+        for inner_list in files:
+            for item in inner_list:
+                chat_dict[(channel_id, thread_ts)].append({
+                    "id": id, 
+                    "name": item['name'], 
+                    "type": item['filetype'], 
+                    "url_private": item['url_private']
+                })
+                id += 1
+        if not chat_dict.get((channel_id, thread_ts), []):
+            response = "No files in this thread"
+        else:
+            response = json.dumps({str(key): value for key, value in chat_dict.items()})
+        update_chat(app, channel_id, reply_message_ts, response)
+    elif command_text.startswith(":summarize"):
+        update_chat(app, channel_id, reply_message_ts, "Give me a minute to summarize this for you.")
+        # reply_message_ts = slack_resp.get('message', {}).get('ts')  
+        files = [message.get('files') for message in conversation_history.data.get('messages') if 'files' in message]
+        # Get the most recent file
+        most_recent_file = files[-1] if files else None
+        if not most_recent_file:
+            response = "No files found in this thread"
+        else:
+            response = summarize_file(most_recent_file[0].get('name'), app, channel_id, thread_ts, reply_message_ts)
+        update_chat(app, channel_id, reply_message_ts, response)
+    elif command_text.startswith(":qa "):
+        question = command_text.replace(":qa ", "").strip()
+        update_chat(app, channel_id, reply_message_ts, "Asking questions is a great way to learn! Give me a sec...")
+        # slack_resp = app.client.chat_postMessage(
+        #     channel=channel_id,
+        #     # thread_ts=thread_ts,
+        #     tread_ts = reply_message_ts,
+        #     text="Asking questions is a great way to learn! Give me a sec..."
+        # )
+        # reply_message_ts = slack_resp.get('message', {}).get('ts')
+        files = [message.get('files') for message in conversation_history.data.get('messages') if 'files' in message]
+        # Get the most recent file
+        most_recent_file = files[-1] if files else None
+        if not most_recent_file:
+            response = "No files found in this thread"
+        else:
+            file = most_recent_file[0]
+            # TODO I'M NOT LIKING HOW METADATA IS FORMATTED. COMMENT OUT UNTIL I HAVE A BETTER IDEA
+            # txt, blks = doc_q_and_a(file.get('name'), channel_id, thread_ts, question)  
+            response = doc_q_and_a(file.get('name'), channel_id, thread_ts, question)
+        # TODO I'M NOT LIKING HOW METADATA IS FORMATTED. COMMENT OUT UNTIL I HAVE A BETTER IDEA
+        # if blks is not None:
+        #     app.client.chat_update(
+        #             channel=channel_id,
+        #             ts=reply_message_ts,
+        #             blocks=blks
+        #         )
+        # else:
+        #     update_chat(app, channel_id, reply_message_ts, txt)
+        app.client.chat_update(
+            channel=channel_id,
+            ts=reply_message_ts,
+            blocks=response
+        )
     else:
         try:
             openai_response = get_completion_from_messages(messages)
@@ -304,6 +309,7 @@ def process_event(body, context):
             )
     logger.debug("DEBUG: end command_handler")
     
+
 def chunk_n_update(openai_response, app, channel_id, reply_message_ts):
         response_text = ""
         ii = 0
