@@ -276,7 +276,11 @@ W'kid Smaaht comes with several commands. You can see the list by typing :help
 As shown above, this command calls the Dall E 2 image generation API from OpenAI (hopefully, we'll update to Dall E 3 soon).
 
 ### :search
-This uses an AI Agent so search the web based on your input.
+This uses an AI Agent so search the web based on your input. TBH, it kind of suck; stick with Google or Bing. 
+
+Eventually this may be upgraded to a research agent. 
+
+<img src="images/wkid_smaaht_search.png" alt="Allow" width="500">
 
 ### :webchat
 Use this when you want to summarize a long web page and make it available in your Slack thread for Q&A
@@ -291,9 +295,9 @@ W'kid Smaaht will register the file internally and this command will create an a
 <img src="images/wkid_smaaht_doc_summary.png" alt="Allow" width="500">
 
 ### :qa
-This feature lets you effectively chat with your document. It is especially useful if you know what you want.
+This feature lets you effectively chat with your document (uploaded into Slack) or URL (by first running :webchat). It is especially useful if you know what you want.
 
-Note that it's not great with scientific articles or documents containing tables. 
+Experience shows this feature has a ways to go. It's great for certain things but lacking in others. For example, it isn't aware of document structure and doesn't handle table well. This makes it so-so for Q&A against scientific articles. We expect this feature to improve over time. 
 
 <img src="images/wkid_smaaht_qa.png" alt="Allow" width="500">
 
