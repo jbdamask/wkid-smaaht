@@ -301,6 +301,12 @@ Experience shows this feature has a ways to go. It's great for certain things bu
 
 <img src="images/wkid_smaaht_qa.png" alt="Allow" width="500">
 
+## Using commands together
+When used together, these commands can be a real time saver.
+
+<img src="images/wkid_smaaht_all-together-now.png" alt="Allow" width="500">
+
+
 ## Advanced
 
 This bot can change! When using GPT4 you can steer how it thinks and responds using something called "System messages". System messages are meant to provide additional context or instructions for the AI model. They can be used to specify certain behaviors or to provide additional context that may not be clear from the user's input alone.
