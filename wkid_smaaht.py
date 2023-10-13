@@ -28,6 +28,15 @@ logger = get_logger(__name__)
 # Set the Slack App bot token
 app = App(token=SLACK_BOT_TOKEN)
 
+# Commands
+commands = [{'Command': ':pix', 'Description': 'Create image from text using Dall E 2', 'Example': '@W\'kid Smaaht :pix Cat in a flying taco'},
+            {'Command': ':search', 'Description': 'Search the web', 'Example': '@W\'kid Smaaht :search Recent FDA approvals'},
+            {'Command': ':webchat', 'Description': 'Automatically summarize a web page and make it available for follow-up questions', 'Example': '@W\'kid Smaaht :webchat https://www.goodnewsnetwork.org/'},
+            {'Command': ':summarize', 'Description': 'Summarize a document that\'s been uploaded to the channel or thread, immediately preceded by @W\kid Smaaht', 'Example': '@W\'kid Smaaht :summarize'},
+            {'Command': ':qa', 'Description': 'Ask direct questions about an uploaded document or URL. If URL, you must first run :webchat', 'Example': '@W\'kid Smaaht :qa According to the document I just uploaded, why did the chicken cross the road?'},
+            ]
+
+
 ### SLACK EVENT HANDLERS ###
 # Slack slash command to return list of all available system prompts
 @app.command("/prompts")
@@ -241,18 +250,19 @@ def process_event(body, context):
             )
         else:
             update_chat(app, channel_id, reply_message_ts, "You need to provide some text for me to generate an image. For example, A cat eating ice cream.")
-    elif command_text.startswith(":snc "):
+    elif command_text.startswith(":search "):
         update_chat(app, channel_id, reply_message_ts, "Let me do a bit of research and I'll get right back to you.")
-        text = command_text.replace(":snc ", "").strip()
+        text = command_text.replace(":search ", "").strip()
         response = search_and_chat(messages, text)
         update_chat(app, channel_id, reply_message_ts, response)
-    elif command_text.startswith(":websum "):
+    elif command_text.startswith(":webchat "):
         update_chat(app, channel_id, reply_message_ts, "I'll try to summarize that page. This may take a minute (literally).")
-        url = command_text.replace(":websum ", "").split("|")[0].replace("<","").replace(">","").strip()
+        url = command_text.replace(":webchat ", "").split("|")[0].replace("<","").replace(">","").strip()
         # register_file(url, channel_id, thread_ts)
         response = summarize_web_page(url, app=app, channel_id=channel_id, thread_ts=thread_ts, reply_message_ts=reply_message_ts)
         update_chat(app, channel_id, reply_message_ts, response)    
     elif command_text.startswith(":listfiles"):
+        # FEATURE NOT FULLY IMPLEMENTED YET
         update_chat(app, channel_id, reply_message_ts, "Listing available files")
         # response = list_files_in_thread(channel_id, thread_ts)
         files = [message.get('files') for message in conversation_history.data.get('messages') if 'files' in message]
@@ -306,10 +316,11 @@ def process_event(body, context):
 
         # Hacky way to see if someone is chatting with a website
         msgs = [message.get('text') for message in conversation_history.data.get('messages') if 'text' in message]
-        web_chats = [s for s in msgs if ':websum' in s]
+        web_chats = [s for s in msgs if ':webchat' in s]
         if web_chats:
             wc = web_chats[-1]
-            url = wc.replace(":websum ", "").split("|")[0].replace("<","").replace(">","").strip()
+            wc = wc.split(f"<@{bot_user_id}>")[1].strip()
+            url = wc.replace(":webchat ", "").split("|")[0].replace("<","").replace(">","").strip()
             # This is how the file object is stored in FileRegistry
             # f = {'name': url, 'id': url, 'url_private': url} 
             response = doc_q_and_a(url, channel_id, thread_ts, question)
@@ -346,6 +357,26 @@ def process_event(body, context):
         #         ts=reply_message_ts,
         #         blocks=response
         #     )
+    elif command_text.startswith(":help") or command_text.startswith(":sos:"):
+        formatted_string = ""
+        for command in commands:
+            formatted_string += "\n*Command*: " + command['Command'] + "\n"
+            formatted_string += "*Description*: " + command['Description'] + "\n"
+            formatted_string += "*Example*: " + command['Example'] + "\n\n"
+        blocks = [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"{formatted_string}"
+                }
+            }
+        ]
+        app.client.chat_update(
+            channel=channel_id,
+            ts=reply_message_ts,
+            blocks=blocks
+        )
     else:
         try:
             openai_response = get_completion_from_messages(messages)
