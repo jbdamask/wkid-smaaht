@@ -12,9 +12,13 @@ W'kid Smaaht Slack brings the power of GPT4 to Slack. It's like having an expert
 
 - GPT-powered: Get intelligent, human-like responses thanks to GPT-4
 - Serverless: Runs on AWS Fargate. This means it's always on and there's no infrastructure to manage
-- Easy to use: Just type @Wkid Smaaht in Slack
+- Easy to use: Just invite the app to any Slack channel and type @Wkid Smaaht.
 
     <img src="images/wkid-smaaht-hello.png" alt="Allow" width="500"/>
+
+- You can also DM as you would any Slack user
+
+    <img src="images/wkid-smaaht-hello-DM.png" alt="Allow" width="500"/>
 
 ## Prerequisites
 
@@ -31,7 +35,7 @@ W'kid Smaaht Slack brings the power of GPT4 to Slack. It's like having an expert
     - AWS CLI installed and configured with your AWS API key
 
 - Docker
-    - Docker installed and running locally
+    - Docker installed and running locally. [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
 - Python 3.10 or greater
 
@@ -117,22 +121,28 @@ There are three major components to this application: the code, the AWS environm
 
 - Open .env_TEMPLATE and save as .env. Then set the values accordingly. ***IMPORTANT: The .gitignore file for this project specifies that the file ".env" be excluded from upload. But if you add your keys to the .env_TEMPLATE file and check in your code, your keys will be in your git repo!***
 
+- Set an environment variable so that W'kid Smaaht runs locally.
+    ```
+    export ENV=development
+    ```
+
 - Now run the app
 
     ```
-    python localsrc/localapp.py
+    python wkid_smaaht.py
     ```
 
-- If everything went well, you'll be able to call the app from Slack
+- If everything went well, you'll now be able to call the app from Slack
 
     <img src="images/wkid_smaaht_hi.png" alt="Allow" width="500"/>
 
-Did you make it here? Sweet. Go ahead and stop localapp.py by hitting Ctrl c and read on...or just keep asking it things; some responses are pretty funny.
+Did you make it here? Sweet. Go ahead and stop the app by hitting Ctrl c and read on...or just keep asking it things; some responses are pretty funny.
 
 ### Docker build and AWS configuration
 
 A production Slack application shouldn't run on your laptop, but it can run in a container in your AWS account. This section will walk you through creating a Docker image, publishing it to an AWS Elastic Container Registry (ECR) repository and running it as a serverless application that's always on.
 
+- Start Docker Desktop
 - Create your AWS Elastic Container Repository (ECR), your Docker image and push the image to your new repo
     
     ``` 
@@ -146,7 +156,7 @@ A production Slack application shouldn't run on your laptop, but it can run in a
         1. Create an Elastic Container Registry repo called "wkid-smaaht-slack"
         2. Build an image from the dockerfile
         3. Push the image to the ECR repo
-    It can take a couple of minutes to run. When finished, note the URI for the repo and save it for later
+    Be patient, this takes 10-20 mins to build. When finished, note the URI for the repo and save it for later
 
     ```
     aws ecr describe-repositories --repository-names wkid-smaaht-slack --query 'repositories[0].repositoryUri' --output text
@@ -182,13 +192,17 @@ You're now ready to create an AWS Elastic Container Service that will pull your 
     ./scripts/start_ECS_service.sh
     ```
 
-- When this returns you're (finally) ready to use the app
+- You can monitor the startup from your AWS Console under Elastic Container Service. 
+
+    <img src="images/ECS-startup-running.png" alt="Allow" width="500"/>
+
+- When the ECS Task is Running, you're read to use the app.
 
     <img src="images/wkid_smaaht_who_are_u.png" alt="Allow" width="500"/>
 
 ## Uses
 
-You can use Wkid Smaaht for almost anything you'd use ChatGPT for. Almost. There's no web browsing or plugin access, yet:
+You can use Wkid Smaaht for almost anything you'd use ChatGPT for, as well as some things that ChatGPT doesn't currently offer (see below).
 
 ### Practical
 
@@ -249,11 +263,39 @@ You can even use it to create images using OpenAI's DALL E 2:
         - You may hit GPT4 API limits
         - You may need to restart the service using `./scripts/start_ECS_service.sh` if the bot stops responding in Slack
         - This bot hasn't been stress-tested so if you have many users in Slack, things may bonk out.
-        - It can't search the internet
         - It doesn't handle large inputs well
         - Most likely, this will be superceded by Slack's own ChatGPT integration.
         - Standard rules of using LLMs apply, namely that you should always review responses for accuracy, completeness and bias.
 
+## Commands
+W'kid Smaaht comes with several commands. You can see the list by typing :help
+
+<img src="images/wkid_smaaht_help.png" alt="Allow" width="500">
+
+### :pix
+As shown above, this command calls the Dall E 2 image generation API from OpenAI (hopefully, we'll update to Dall E 3 soon).
+
+### :search
+This uses an AI Agent so search the web based on your input.
+
+### :webchat
+Use this when you want to summarize a long web page and make it available in your Slack thread for Q&A
+
+<img src="images/wkid_smaaht_webchat.png" alt="Allow" width="500">
+
+### :summarize
+To use this command in a DM, simply upload a file. If using in a Channel or Thread, you'll need to specifiy @W'kid Smaaht when uploading the file.
+
+W'kid Smaaht will register the file internally and this command will create an abstract and some options for follow-up questions. Note that large documents can take several minutes to summarize.
+
+<img src="images/wkid_smaaht_doc_summary.png" alt="Allow" width="500">
+
+### :qa
+This feature lets you effectively chat with your document. It is especially useful if you know what you want.
+
+Note that it's not great with scientific articles or documents containing tables. 
+
+<img src="images/wkid_smaaht_qa.png" alt="Allow" width="500">
 
 ## Advanced
 
@@ -277,6 +319,8 @@ Resources to learn more about "prompt engineering" and system messages.
 - [ChatGPT Prompt Engineering for Developers](https://www.deeplearning.ai/short-courses/chatgpt-prompt-engineering-for-developers/)
 
 
+## What's next?
+Keep an eye on the Issues section of this repo
 
 
 ## How it's Built
