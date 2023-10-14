@@ -245,7 +245,7 @@ W'kid Smaaht comes with several commands. You can see the list by typing :help
 As shown above, this command calls the Dall E 2 image generation API from OpenAI (hopefully, we'll update to Dall E 3 soon).
 
 ### :search
-This uses an AI Agent so search the web based on your input. TBH, it kind of sucks. Stick with Google or Bing for now.
+This uses an AI Agent so search the web based on your input. TBH, it has potential but ain't great yet. Stick with Google or Bing for now.
 
 Eventually this may be upgraded to a research agent. 
 
