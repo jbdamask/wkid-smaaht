@@ -337,6 +337,8 @@ Keep an eye on the Issues section of this repo
 ## How it's Built
 This project leverages the [Bolt-Python](https://slack.dev/bolt-python/tutorial/getting-started) framework for building Slack applications, and uses code from the [Slack GPT Bot](https://github.com/alex000kim/slack-gpt-bot) project and the deeplearning.ai course, [Building Systems with the ChatGPT API](https://learn.deeplearning.ai/chatgpt-building-system/lesson/1/introduction).
 
+[LangChain](https://www.langchain.com/) is responsible for taking W'kid Smaaht to the next level. The learning curve may be steep but it's worth it! 
+
 ### Architecture
 
 <img src="images/Wkid%20Smaaht%20Architecture.png" alt="Allow" width="500"/>
@@ -358,7 +360,7 @@ When contributing, make sure you run the following user tests:
 7. Chat in Channel with no App mention - Should not respond
 8. Create pic in channel - Should receive wait message, then image
 9. Create pic in channel thread - Should receive wait message, then image
-10. Create pic in DM - Should receive wait message, then image
-11. Create pic in DM thread - Should receive wait message, then image
+10. Test all commands in DM
+11. Test all commands in Channel
 12. Slash command in channel - Should receive info about command
 13. Slash comand in DM - Should receive info about command
