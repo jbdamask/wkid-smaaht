@@ -111,7 +111,7 @@ There are three major components to this application: the code, the AWS environm
 
 ### Code configuration
 
-- It's a good idea to try your application locally; you'll find code for this under the localsrc folder. Go back to your computer terminal and make sure you're in the wkid_smaaht folder.
+- It's a good idea to try your application locally. Go back to your computer terminal and make sure you're in the wkid_smaaht folder.
 
     ```
     python -m venv .venv
