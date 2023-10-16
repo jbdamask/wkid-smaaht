@@ -591,6 +591,22 @@ def doc_q_and_a(file, channel_id, thread_ts, question):
     retriever = VectorStoreRetriever(vectorstore=db, search_kwargs=search_kwargs)
     qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents = True, verbose=DEBUG)
     response = qa(question)
+    # add some reponse check logic here
+    # if response like "i don't know" or something like that:
+    #   vars = rag_fusion.generate_variants(question)
+    #   for v in vars:
+    #       result_docs = query_v(v)
+    # def query_v(question):
+    #   emb = embeddings.embed_query(question)
+    #   return db.similarity_search_by_vector_with_relevance_scores(emb, k=4)
+    # 
+    # reranked_results = reciprocal_rank_fusion(all_results)
+    # 
+    # best = all_results.get(list(reranked_results.keys())[0])
+    # query LLM with best (how do I construct that query? straight-up OPenAI or LangChain?)
+    
+
+
     # TODO I don't like how references are being returned. Remove until I have a better idea.
     # if handler.file_type == "pdf":
     #     s = []
