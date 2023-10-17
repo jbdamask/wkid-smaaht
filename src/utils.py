@@ -23,21 +23,24 @@ from cachetools import LRUCache
 from src.logger_config import get_logger
 from src.system_prompt import SystemPrompt, FilePromptStrategy, DynamoDBPromptStrategy, S3PromptStrategy
 from src.chat_manager import ChatManager
-from langchain.tools import DuckDuckGoSearchResults
 from langchain.agents import ConversationalChatAgent, AgentExecutor
 from langchain.agents.agent_toolkits import create_conversational_retrieval_agent
 from langchain.agents.agent_toolkits import create_retriever_tool
-from langchain.chat_models import ChatOpenAI
-from langchain.memory import ConversationBufferMemory
 from langchain.callbacks import StdOutCallbackHandler
-from langchain.memory.chat_message_histories import ChatMessageHistory
-from langchain.document_loaders import WebBaseLoader
-from langchain.chains.summarize import load_summarize_chain
 from langchain.chains import ConversationalRetrievalChain, RetrievalQA
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.chains.summarize import load_summarize_chain
+from langchain.chat_models import ChatOpenAI
+from langchain.document_loaders import WebBaseLoader
 from langchain.docstore.document import Document
+from langchain.memory import ConversationBufferMemory
+from langchain.memory.chat_message_histories import ChatMessageHistory
+from langchain.prompts import PromptTemplate, ChatPromptTemplate
+from langchain.prompts.chat import SystemMessagePromptTemplate, HumanMessagePromptTemplate, SystemMessage
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.tools import DuckDuckGoSearchResults
 from langchain.vectorstores.base import VectorStoreRetriever
 from chat_with_docs.lc_file_handler import create_file_handler, FileRegistry
+from chat_with_docs.rag_fusion import RagFusion
 # from chat_with_docs.chat_with_pdf import ChatWithDoc
 from chat_with_docs.prompt import CONCISE_SUMMARY_PROMPT, CONCISE_SUMMARY_MAP_PROMPT, CONCISE_SUMMARY_COMBINE_PROMPT
 
@@ -563,7 +566,7 @@ def register_file(file, channel_id, thread_ts):
                               handler=handler)
     return handler
 
-def doc_q_and_a(file, channel_id, thread_ts, question):
+def doc_q_and_a(file, question, app, channel_id, thread_ts, reply_message_ts):
     """
     This function answers questions about a file.
     
@@ -585,61 +588,90 @@ def doc_q_and_a(file, channel_id, thread_ts, question):
     db = handler.db
     # db = f[0].get('handler').db
     if 'WebHandler' in str(type(handler)):
-        search_kwargs={"filter": {"filename":file}}
+        search_kwargs={"filter": {"filename":file}, 'score_threshold': 0.3}
     else:
-        search_kwargs={"filter": {"filename": file.split('/')[-1]}}
+        search_kwargs={"filter": {"filename": file.split('/')[-1]}, 'score_threshold': 0.3}
     retriever = VectorStoreRetriever(vectorstore=db, search_kwargs=search_kwargs)
     qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents = True, verbose=DEBUG)
     response = qa(question)
+    response = qa(question).get('result')
     # add some reponse check logic here
-    # if response like "i don't know" or something like that:
-    #   vars = rag_fusion.generate_variants(question)
-    #   for v in vars:
-    #       result_docs = query_v(v)
-    # def query_v(question):
-    #   emb = embeddings.embed_query(question)
-    #   return db.similarity_search_by_vector_with_relevance_scores(emb, k=4)
-    # 
-    # reranked_results = reciprocal_rank_fusion(all_results)
-    # 
-    # best = all_results.get(list(reranked_results.keys())[0])
-    # query LLM with best (how do I construct that query? straight-up OPenAI or LangChain?)
+    truefalse = check_response(question, response)
     
+    if bool(truefalse.lower() == 'false'):
+        update_chat(app, channel_id, reply_message_ts, "I didn't get a result for that question, let me make some tweaks and try again")
+        rf = RagFusion(OPENAI_API_KEY, db)
+        question_variants = rf.generate_question_variants(question)
+        results_docs = {}
+        for q in question_variants:
+            if q:
+                results_docs[q] = rf.db_lookup(q)
+        reranked_results = rf.reciprocal_rank_fusion(results_docs)  
+        revised_question = list(reranked_results.keys())[0]
+        top_result_docs = results_docs.get(list(reranked_results.keys())[0])
+        top_docs = [doc for doc, _ in top_result_docs]
+        # from langchain.chains.summarize import load_summarize_chain
+        llm = ChatOpenAI(model_name='gpt-3.5-turbo-16k', openai_api_key=OPENAI_API_KEY, streaming=False)
+        chain = load_summarize_chain(llm, 
+                                    chain_type="stuff")
+        output_summary = chain.run(top_docs)
+        # if check_response(revised_question, output_summary):
+        #     output = ""
+        #     cnt = 1
+        #     for doc, _ in top_result_docs:
+        #         output += f"{cnt}. {doc.metadata['filename']}, Page: {doc.metadata['page']}\n"
+        #         cnt += 1
 
+            # print(output)
+            # response = f"This revised version of your question got an answer: \n{revised_question}\n\n{output_summary}\n\nSources:\n{output}"
+        response = f"This revised version of your question got an answer: \n{revised_question}\n\n{output_summary}"
 
-    # TODO I don't like how references are being returned. Remove until I have a better idea.
-    # if handler.file_type == "pdf":
-    #     s = []
-    #     for d in response.get('source_documents'):
-    #         filename = d.metadata.get('filename')
-    #         page = int(d.metadata.get('page'))  # convert page to int for proper sorting
-    #         # content_snippit = d.page_content[:50]
-    #         content_snippit = d.page_content
-    #         s.append((filename, page, content_snippit))    
-    #     s = list(set(s))
-    #     s.sort(key=lambda x: x[1])  # sort by page number
-    #     md = '\n'.join(f"File: {filename}\tPage: {page}\tSnippit: {content_snippit}" for filename, page, content_snippit in s)
-    #     blocks = [
-    #         {
-    #             "type": "section",
-    #             "text": {
-    #                 "type": "mrkdwn",
-    #                 "text": f"{response.get('result')}\n {md}"
-    #             }
-    #         }
-    #     ]
-    #     text = None
-    #     return text, blocks
-    # else:
-    #     blocks = None
-    #     return response.get('result'), blocks
     blocks = [
         {
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f"{response.get('result')}"
+                "text": f"{response}"
+                # "text": f"{response.get('result')}"
             }
         }
     ]
     return blocks
+
+
+def check_response(question, answer):
+  system_template = """You review a question and answer and make a true or false determination of whether the question was answered adequately.
+  Any responses such as 'The given context does not provide information...' or 'I dont know' are considered inadequate responses. You can only return 
+  either True or False. No other text is acceptable.
+
+  Examples:
+  Question: Does CoVe improve the correctness of the overall response?
+  Answer: The given context does not provide information about whether CoVe improves the correctness of the overall response.
+  Response: False
+
+  Question: Can CoVe enhance the accuracy of the overall response?
+  Answer: The study introduces the Chain-of-Verification (CoVe) method to reduce hallucinations in large language models. Experiments show that CoVe decreases hallucinations across various tasks, including list-based questions, closed book QA, and longform text generation. The factored and 2-step versions of CoVe perform better than the joint version. The study also compares CoVe with other baselines and shows that it outperforms them in reducing hallucinations and improving precision. However, CoVe does not completely eliminate hallucinations and is limited by the capabilities of the base language model.
+  Response: True
+
+  """
+
+  # create a prompt template for a System role
+  system_message_prompt_template = SystemMessagePromptTemplate.from_template(
+      system_template)
+
+  # create a string template for a Human role with input variables
+  human_template = "{question} {answer}"
+
+  # create a prompt template for a Human role
+  human_message_prompt_template = HumanMessagePromptTemplate.from_template(human_template)
+
+  # create chat prompt template 
+  chat_prompt_template = ChatPromptTemplate.from_messages(
+      [system_message_prompt_template, human_message_prompt_template])
+
+  # Create chat prompt
+  final_prompt = chat_prompt_template.format_prompt(question=question, answer=answer).to_messages()
+
+  llm = ChatOpenAI(model_name='gpt-3.5-turbo', openai_api_key=OPENAI_API_KEY, streaming=False)
+  response_string = llm(final_prompt)
+  return(response_string.content)

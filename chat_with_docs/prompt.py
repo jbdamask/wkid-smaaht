@@ -49,7 +49,7 @@ QUESTION_VARIANT_PROMPT = ChatPromptTemplate.from_messages(
         SystemMessage(
             content=(
                 """Generate five variants of the following text that can be used as prompts for vectorstore lookup. 
-Maintain the theme of the original. Output must be separated by newlines"""
+Maintain the theme of the original. Do not number variants in your output. Output must be separated by newlines."""
             )
         ),
         HumanMessagePromptTemplate.from_template("{text}"),
