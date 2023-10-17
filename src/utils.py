@@ -607,24 +607,30 @@ def doc_q_and_a(file, question, app, channel_id, thread_ts, reply_message_ts):
             if q:
                 results_docs[q] = rf.db_lookup(q)
         reranked_results = rf.reciprocal_rank_fusion(results_docs)  
-        revised_question = list(reranked_results.keys())[0]
-        top_result_docs = results_docs.get(list(reranked_results.keys())[0])
-        top_docs = [doc for doc, _ in top_result_docs]
-        # from langchain.chains.summarize import load_summarize_chain
+        # revised_question = list(reranked_results.keys())[0]
+        revised_questions = list(reranked_results.keys())
+        # top_result_docs = results_docs.get(list(reranked_results.keys())[0])
+        # top_docs = [doc for doc, _ in top_result_docs]
+        # logger.info(reranked_results)
+        # reranked_results_docs = results_docs.get(list(revised_questions))
+        reranked_results_docs = {}
+        for question in revised_questions:
+            reranked_results_docs[question] = results_docs.get(question)
+        # logger.info(reranked_results_docs)
+        rrd_ = []
+        for rrd in reranked_results_docs:
+            rrd_.append([doc for doc, _ in reranked_results_docs[rrd]])
+            # rrd_.append(doc for doc, _ in rrd)
+        # reranked_results_docs = [doc for doc, _ in reranked_results_docs]
+        logger.info(rrd_)
         llm = ChatOpenAI(model_name='gpt-3.5-turbo-16k', openai_api_key=OPENAI_API_KEY, streaming=False)
         chain = load_summarize_chain(llm, 
                                     chain_type="stuff")
-        output_summary = chain.run(top_docs)
-        # if check_response(revised_question, output_summary):
-        #     output = ""
-        #     cnt = 1
-        #     for doc, _ in top_result_docs:
-        #         output += f"{cnt}. {doc.metadata['filename']}, Page: {doc.metadata['page']}\n"
-        #         cnt += 1
-
-            # print(output)
-            # response = f"This revised version of your question got an answer: \n{revised_question}\n\n{output_summary}\n\nSources:\n{output}"
-        response = f"This revised version of your question got an answer: \n{revised_question}\n\n{output_summary}"
+        # output_summary = chain.run(top_docs)
+        output_summary = chain.run(rrd_[0])
+        # response = f"This revised version of your question got an answer: \n{revised_question}\n\n{output_summary}"
+        rq = "\n".join(revised_questions)
+        response = f"I was able to get an answer using similar questions: \n{rq}\n\n{output_summary}"
 
     blocks = [
         {
