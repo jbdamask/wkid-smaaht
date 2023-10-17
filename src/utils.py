@@ -442,7 +442,10 @@ def search_and_chat(messages, text):
     )
     llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k", openai_api_key=OPENAI_API_KEY, streaming=True)
     tools = [DuckDuckGoSearchResults(name="Search")]
-    chat_agent = ConversationalChatAgent.from_llm_and_tools(llm=llm, tools=tools, verbose=DEBUG)
+    chat_agent = ConversationalChatAgent.from_llm_and_tools(llm=llm, 
+                                                            tools=tools, 
+                                                            verbose=DEBUG
+                                                            )
     executor = AgentExecutor.from_agent_and_tools(
         agent=chat_agent,
         tools=tools,
@@ -474,14 +477,23 @@ def summarize_chain(docs, app, channel_id, reply_message_ts):
     llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k", openai_api_key=OPENAI_API_KEY)
     PROMPT = CONCISE_SUMMARY_PROMPT
     try:
-        chain = load_summarize_chain(llm, chain_type="stuff", prompt=CONCISE_SUMMARY_COMBINE_PROMPT, verbose=DEBUG)
+        chain = load_summarize_chain(llm, 
+                                     chain_type="stuff", 
+                                     prompt=CONCISE_SUMMARY_COMBINE_PROMPT, 
+                                     verbose=DEBUG
+                                     )
         result = chain.run(docs)
     except openai.error.InvalidRequestError as e:
         warn = "Document length exceeded model capacity. Changing strategy - please be patient"
         logger.warning(warn)
         update_chat(app, channel_id, reply_message_ts, warn)
         # chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=PROMPT, combine_prompt=PROMPT)
-        chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=CONCISE_SUMMARY_MAP_PROMPT, combine_prompt=CONCISE_SUMMARY_COMBINE_PROMPT, verbose=DEBUG)
+        chain = load_summarize_chain(llm, 
+                                     chain_type="map_reduce", 
+                                     map_prompt=CONCISE_SUMMARY_MAP_PROMPT, 
+                                     combine_prompt=CONCISE_SUMMARY_COMBINE_PROMPT, 
+                                     verbose=DEBUG
+                                     )
         result = chain.run(docs)
     return result
 
@@ -592,9 +604,15 @@ def doc_q_and_a(file, question, app, channel_id, thread_ts, reply_message_ts):
     else:
         search_kwargs={"filter": {"filename": file.split('/')[-1]}, 'score_threshold': 0.3}
     retriever = VectorStoreRetriever(vectorstore=db, search_kwargs=search_kwargs)
-    qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents = True, verbose=DEBUG)
-    response = qa(question)
-    response = qa(question).get('result')
+    qa = RetrievalQA.from_chain_type(llm=llm, 
+                                     chain_type="stuff", 
+                                     retriever=retriever, 
+                                     return_source_documents = True, 
+                                     verbose=DEBUG
+                                     )
+    response = qa({'query': question})
+    response = response.get('result')
+    # response = qa(question).get('result')
     # add some reponse check logic here
     truefalse = check_response(question, response)
     
@@ -613,7 +631,9 @@ def doc_q_and_a(file, question, app, channel_id, thread_ts, reply_message_ts):
         # from langchain.chains.summarize import load_summarize_chain
         llm = ChatOpenAI(model_name='gpt-3.5-turbo-16k', openai_api_key=OPENAI_API_KEY, streaming=False)
         chain = load_summarize_chain(llm, 
-                                    chain_type="stuff")
+                                    chain_type="stuff", 
+                                    verbose=DEBUG
+                                    )
         output_summary = chain.run(top_docs)
         # if check_response(revised_question, output_summary):
         #     output = ""
