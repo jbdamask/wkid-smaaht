@@ -176,7 +176,7 @@ def deal_with_file(body, context):
     reply_message_ts = slack_resp.get('message', {}).get('ts')
     filepath = body['event']['files'][0]['name']
     register_file(body['event']['files'][0], channel_id, thread_id)
-    response = "What would you like to do with this? You can ask me to summarize it or ask questions"
+    response = "What would you like to do with this? You can ask me to summarize it by typing :summarize, or ask questions by typing :qa."
     update_chat(app, channel_id, reply_message_ts, response) 
 
 # Where the magic happens
@@ -308,7 +308,7 @@ def process_event(body, context):
         most_recent_file = files[-1] if files else None    
         if most_recent_file:
             file = most_recent_file[0]
-            response = doc_q_and_a(file.get('name'), channel_id, thread_ts, question) 
+            response = doc_q_and_a(file.get('name'), question, app=app, channel_id=channel_id, thread_ts=thread_ts, reply_message_ts=reply_message_ts)
             app.client.chat_update(
                 channel=channel_id,
                 ts=reply_message_ts,
@@ -327,7 +327,7 @@ def process_event(body, context):
             url = wc.replace(":webchat ", "").split("|")[0].replace("<","").replace(">","").strip()
             # This is how the file object is stored in FileRegistry
             # f = {'name': url, 'id': url, 'url_private': url} 
-            response = doc_q_and_a(url, channel_id, thread_ts, question)
+            response = doc_q_and_a(url, question, app=app, channel_id=channel_id, thread_ts=thread_ts, replay_message_ts=reply_message_ts)
             app.client.chat_update(
                 channel=channel_id,
                 ts=reply_message_ts,
