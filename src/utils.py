@@ -534,7 +534,8 @@ def summarize_file(file, app, channel_id, thread_ts, reply_message_ts):
     """
     f = fileRegistry.get_files(file, channel_id, thread_ts)
     handler = f[0].get('handler')
-    filepath = handler.download_local_file()
+    # filepath = handler.download_local_file()
+    filepath = handler.download_file()
     handler.instantiate_loader(filepath)
     documents = handler.loader.load()
     result = summarize_chain(documents, app, channel_id, reply_message_ts)

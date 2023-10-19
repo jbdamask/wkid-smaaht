@@ -2,7 +2,7 @@ import langchain
 from langchain.llms import OpenAI
 from langchain.chat_models import ChatOpenAI
 from langchain.agents import AgentType, load_tools
-from langchain.document_loaders import PyPDFLoader, OnlinePDFLoader, UnstructuredPDFLoader, UnstructuredWordDocumentLoader, UnstructuredFileLoader, WebBaseLoader
+from langchain.document_loaders import PyPDFLoader, PDFMinerPDFasHTMLLoader, OnlinePDFLoader, UnstructuredPDFLoader, UnstructuredWordDocumentLoader, UnstructuredFileLoader, WebBaseLoader
 # from custom_agent_types import CustomAgentType
 import pandas as pd
 import abc
@@ -14,6 +14,8 @@ from langchain.vectorstores import Chroma
 from langchain.vectorstores import utils
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings import OpenAIEmbeddings
+import requests
+import uuid
 # Necessary for ChromaDB to work on Fargate linux instances
 __import__('pysqlite3')
 import sys
@@ -36,15 +38,13 @@ class Handler(abc.ABC):
         self.openai_api_key = openai_api_key
         # self.slack_bot_token = slack_bot_token
         self.headers = {'Authorization': f'Bearer {slack_bot_token}'}
-        self.llm = ChatOpenAI(temperature=0,openai_api_key=self.openai_api_key)
+        self.llm = ChatOpenAI(temperature=0, openai_api_key=self.openai_api_key)
+        self.embeddings = OpenAIEmbeddings(openai_api_key = self.openai_api_key)
+        self.text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)        
 
     # def handle(self, file):
     def handle(self):
         raise NotImplementedError
-    
-    # @abc.abstractmethod
-    # def read_file(self):
-    #     pass
 
     @abc.abstractmethod
     def instantiate_loader(self, filename):
@@ -57,22 +57,63 @@ class Handler(abc.ABC):
         return response.content  
 
     def download_and_store(self):
-        # headers = {'Authorization': f'Bearer {self.slack_bot_token}'}
+        self.download_file()
+        self.load_and_split()
+        self.load_db()
+        # url = self.file.get('url_private')
+        # logger.info(url)
+        # self.filepath = self.download_local_file()        
+        # embeddings = OpenAIEmbeddings(openai_api_key = self.openai_api_key)
+        # text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+        # self.instantiate_loader(self.filepath)
+        # documents = self.loader.load()
+        # self.docs = text_splitter.split_documents(documents)
+        # filename = self.file.get('name')
+        # for idx, text in enumerate(self.docs):
+        #     self.docs[idx].metadata['filename'] = filename.split('/')[-1]   
+        # filtered_docs = utils.filter_complex_metadata(self.docs)
+        # # self.db = Chroma.from_documents(docs, embeddings)    
+        # self.db = Chroma.from_documents(filtered_docs, embeddings)    
+        # self.delete_local_file(self.filepath)    
+
+    def download_file(self):
         url = self.file.get('url_private')
-        logger.info(url)
-        filepath = self.download_local_file()        
-        embeddings = OpenAIEmbeddings(openai_api_key = self.openai_api_key)
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-        self.instantiate_loader(filepath)
+        # Not all filetypes are accessible by LangChain over the web.
+        # Some need to be downloaded locally 
+        directory='downloads'
+        url = self.file.get('url_private')
+        file_type = url.split('.')[-1]
+        # response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=self.headers)
+        # Generate a random UUID
+        file_uuid = uuid.uuid4()
+        # Convert the UUID to a string and append the .docx extension
+        filename = str(file_uuid) + '.' + file_type
+        # Check if the directory exists and create it if it doesn't
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        self.filepath = os.path.join(directory, filename)
+        with open(self.filepath, 'wb') as f:
+            f.write(response.content)
+        return self.filepath
+        # return filepath        
+        # logger.info(url)
+        # self.filepath = self.download_local_file()        
+
+    def load_and_split(self):
+        # embeddings = OpenAIEmbeddings(openai_api_key = self.openai_api_key)
+        # text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+        self.instantiate_loader(self.filepath)
         documents = self.loader.load()
-        self.docs = text_splitter.split_documents(documents)
+        self.docs = self.text_splitter.split_documents(documents)
         filename = self.file.get('name')
         for idx, text in enumerate(self.docs):
             self.docs[idx].metadata['filename'] = filename.split('/')[-1]   
-        filtered_docs = utils.filter_complex_metadata(self.docs)
-        # self.db = Chroma.from_documents(docs, embeddings)    
-        self.db = Chroma.from_documents(filtered_docs, embeddings)    
-        self.delete_local_file(filepath)    
+        self.filtered_docs = utils.filter_complex_metadata(self.docs)
+
+    def load_db(self):
+        self.db = Chroma.from_documents(self.filtered_docs, self.embeddings)    
+        self.delete_local_file(self.filepath)  
 
 
     # TODO - May or may not want to keep this method
@@ -87,28 +128,28 @@ class Handler(abc.ABC):
         return result
         # return self.agent(question) # This invokes the default __call__ method
 
-    # Not all filetypes are accessible by LangChain over the web.
-    # Some need to be downloaded locally
-    # def _download_local_file(self, headers, directory='downloads'):
-    def download_local_file(self):    
-        import requests
-        import uuid
-        directory='downloads'
-        url = self.file.get('url_private')
-        file_type = url.split('.')[-1]
-        # response = requests.get(url, headers=headers)
-        response = requests.get(url, headers=self.headers)
-        # Generate a random UUID
-        file_uuid = uuid.uuid4()
-        # Convert the UUID to a string and append the .docx extension
-        filename = str(file_uuid) + '.' + file_type
-        # Check if the directory exists and create it if it doesn't
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-        filepath = os.path.join(directory, filename)
-        with open(filepath, 'wb') as f:
-            f.write(response.content)
-        return filepath
+    # # Not all filetypes are accessible by LangChain over the web.
+    # # Some need to be downloaded locally
+    # # def _download_local_file(self, headers, directory='downloads'):
+    # def download_local_file(self):    
+    #     import requests
+    #     import uuid
+    #     directory='downloads'
+    #     url = self.file.get('url_private')
+    #     file_type = url.split('.')[-1]
+    #     # response = requests.get(url, headers=headers)
+    #     response = requests.get(url, headers=self.headers)
+    #     # Generate a random UUID
+    #     file_uuid = uuid.uuid4()
+    #     # Convert the UUID to a string and append the .docx extension
+    #     filename = str(file_uuid) + '.' + file_type
+    #     # Check if the directory exists and create it if it doesn't
+    #     if not os.path.exists(directory):
+    #         os.makedirs(directory)
+    #     filepath = os.path.join(directory, filename)
+    #     with open(filepath, 'wb') as f:
+    #         f.write(response.content)
+    #     return filepath
 
     # You slob. Clean up after yourself!
     def delete_local_file(self, filepath):
@@ -126,21 +167,14 @@ class PDFHandler(Handler):
         return f"Handling PDF file: {self.file}"
 
     def instantiate_loader(self, filename):
-        # self.loader = UnstructuredPDFLoader(filename, mode="elements", metadata_filename=self.file.get('url_private'))
-        # self.loader = PyPDFLoader(filename, metadata_filename=self.file.get('url_private'))
         self.loader = PyPDFLoader(filename)
 
-    # def read_file(self, url, SLACK_BOT_TOKEN, loader=UnstructuredPDFLoader):
-    #     headers = {'Authorization': f'Bearer {SLACK_BOT_TOKEN}'}
-    #     logger.info(url)
-    #     # loader = OnlinePDFLoader(url, headers=headers)
-    #     filename = self.download_local_file(url, headers)
-    #     # loader = UnstructuredPDFLoader(filename, headers=headers, mode="elements", metadata_filename=url)
-    #     loader = UnstructuredPDFLoader(filename, mode="elements")
-    #     self.documents = loader.load_and_split()
-    #     # logger.info(self.documents[0].page_content)
-    #     logger.info(self.documents[0].metadata)
-    #     return self.documents
+class PDFHandlerStructured(Handler):
+    def handle(self):
+        return f"Handling PDF file: {self.file}"
+
+    def instantiate_loader(self, filename):
+        self.loader = PDFMinerPDFasHTMLLoader(filename)
 
 class DOCXHandler(Handler):
     def handle(self):
