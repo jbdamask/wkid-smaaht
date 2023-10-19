@@ -327,7 +327,7 @@ def process_event(body, context):
             url = wc.replace(":webchat ", "").split("|")[0].replace("<","").replace(">","").strip()
             # This is how the file object is stored in FileRegistry
             # f = {'name': url, 'id': url, 'url_private': url} 
-            response = doc_q_and_a(url, question, app=app, channel_id=channel_id, thread_ts=thread_ts, replay_message_ts=reply_message_ts)
+            response = doc_q_and_a(url, question, app=app, channel_id=channel_id, thread_ts=thread_ts, reply_message_ts=reply_message_ts)
             app.client.chat_update(
                 channel=channel_id,
                 ts=reply_message_ts,

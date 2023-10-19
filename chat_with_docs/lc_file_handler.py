@@ -83,7 +83,6 @@ class Handler(abc.ABC):
         directory='downloads'
         url = self.file.get('url_private')
         file_type = url.split('.')[-1]
-        # response = requests.get(url, headers=headers)
         response = requests.get(url, headers=self.headers)
         # Generate a random UUID
         file_uuid = uuid.uuid4()
@@ -95,14 +94,9 @@ class Handler(abc.ABC):
         self.filepath = os.path.join(directory, filename)
         with open(self.filepath, 'wb') as f:
             f.write(response.content)
-        return self.filepath
-        # return filepath        
-        # logger.info(url)
-        # self.filepath = self.download_local_file()        
+        return self.filepath       
 
     def load_and_split(self):
-        # embeddings = OpenAIEmbeddings(openai_api_key = self.openai_api_key)
-        # text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
         self.instantiate_loader(self.filepath)
         documents = self.loader.load()
         self.docs = self.text_splitter.split_documents(documents)
