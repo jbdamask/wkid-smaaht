@@ -59,22 +59,7 @@ class Handler(abc.ABC):
     def download_and_store(self):
         self.download_file()
         self.load_and_split()
-        self.load_db()
-        # url = self.file.get('url_private')
-        # logger.info(url)
-        # self.filepath = self.download_local_file()        
-        # embeddings = OpenAIEmbeddings(openai_api_key = self.openai_api_key)
-        # text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-        # self.instantiate_loader(self.filepath)
-        # documents = self.loader.load()
-        # self.docs = text_splitter.split_documents(documents)
-        # filename = self.file.get('name')
-        # for idx, text in enumerate(self.docs):
-        #     self.docs[idx].metadata['filename'] = filename.split('/')[-1]   
-        # filtered_docs = utils.filter_complex_metadata(self.docs)
-        # # self.db = Chroma.from_documents(docs, embeddings)    
-        # self.db = Chroma.from_documents(filtered_docs, embeddings)    
-        # self.delete_local_file(self.filepath)    
+        self.load_db()   
 
     def download_file(self):
         url = self.file.get('url_private')
@@ -121,29 +106,6 @@ class Handler(abc.ABC):
             result = "Sorry, I ran into a problem with the file"
         return result
         # return self.agent(question) # This invokes the default __call__ method
-
-    # # Not all filetypes are accessible by LangChain over the web.
-    # # Some need to be downloaded locally
-    # # def _download_local_file(self, headers, directory='downloads'):
-    # def download_local_file(self):    
-    #     import requests
-    #     import uuid
-    #     directory='downloads'
-    #     url = self.file.get('url_private')
-    #     file_type = url.split('.')[-1]
-    #     # response = requests.get(url, headers=headers)
-    #     response = requests.get(url, headers=self.headers)
-    #     # Generate a random UUID
-    #     file_uuid = uuid.uuid4()
-    #     # Convert the UUID to a string and append the .docx extension
-    #     filename = str(file_uuid) + '.' + file_type
-    #     # Check if the directory exists and create it if it doesn't
-    #     if not os.path.exists(directory):
-    #         os.makedirs(directory)
-    #     filepath = os.path.join(directory, filename)
-    #     with open(filepath, 'wb') as f:
-    #         f.write(response.content)
-    #     return filepath
 
     # You slob. Clean up after yourself!
     def delete_local_file(self, filepath):
