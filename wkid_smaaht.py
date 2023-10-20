@@ -301,86 +301,47 @@ def process_event(body, context):
     elif command_text.startswith(":qa "):
         question = command_text.replace(":qa ", "").strip()
         update_chat(app, channel_id, reply_message_ts, "Asking questions is a great way to learn! Give me a sec...")
-
-        # Figure out what we're chatting with
-        files = [message.get('files') for message in conversation_history.data.get('messages') if 'files' in message]
-        # Get the most recent file
-        most_recent_file = files[-1] if files else None    
-        if most_recent_file:
-            file = most_recent_file[0]
-            response = doc_q_and_a(file.get('name'), question, app=app, channel_id=channel_id, thread_ts=thread_ts, reply_message_ts=reply_message_ts)
+        most_recent_file = ''
+        wc = ''
+        file_found = False
+        webchat_found = False
+        for message in reversed(conversation_history.data.get('messages')):
+            if 'files' in message:
+                files = message.get('files')
+                most_recent_file = files[-1] if files else None 
+                file_found = True
+                break
+            elif 'text' in message:
+                t = message.get('text')
+                if ":webchat" in t:
+                    wc = t
+                    webchat_found = True
+                    break
+        
+        if file_found:
+            # file = most_recent_file[0]
+            response = doc_q_and_a(most_recent_file.get('name'), question, app=app, channel_id=channel_id, thread_ts=thread_ts, reply_message_ts=reply_message_ts)
             app.client.chat_update(
                 channel=channel_id,
                 ts=reply_message_ts,
                 blocks=response
-            )
-            return                       
-
-        # Hacky way to see if someone is chatting with a website
-        msgs = [message.get('text') for message in conversation_history.data.get('messages') if 'text' in message]
-        web_chats = [s for s in msgs if ':webchat' in s]
-        if web_chats:
-            wc = web_chats[-1]
+            )            
+            return
+        elif webchat_found:
             # TODO This won't help if Wkid Smaaht is referenced in the middle of a text or along with other user callouts
             if wc.startswith('<@'):
                 wc = wc.split(f"<@{bot_user_id}>")[1].strip()
             url = wc.replace(":webchat ", "").split("|")[0].replace("<","").replace(">","").strip()
-            # This is how the file object is stored in FileRegistry
-            # f = {'name': url, 'id': url, 'url_private': url} 
-            response = doc_q_and_a(url, question, app=app, channel_id=channel_id, thread_ts=thread_ts, replay_message_ts=reply_message_ts)
+            response = doc_q_and_a(url, question, app=app, channel_id=channel_id, thread_ts=thread_ts, reply_message_ts=reply_message_ts)
             app.client.chat_update(
                 channel=channel_id,
                 ts=reply_message_ts,
                 blocks=response
-            )
+            )            
             return
-        
         else:
             response = "No files found in this thread"
             update_chat(app, channel_id, reply_message_ts, response)
-
-        # if not most_recent_file:
-        #     response = "No files found in this thread"
-        #     update_chat(app, channel_id, reply_message_ts, response)
-        # else:
-        #     file = most_recent_file[0]
-        #     # TODO I'M NOT LIKING HOW METADATA IS FORMATTED. COMMENT OUT UNTIL I HAVE A BETTER IDEA
-        #     # txt, blks = doc_q_and_a(file.get('name'), channel_id, thread_ts, question)  
-        #     response = doc_q_and_a(file.get('name'), channel_id, thread_ts, question)
-        # # TODO I'M NOT LIKING HOW METADATA IS FORMATTED. COMMENT OUT UNTIL I HAVE A BETTER IDEA
-        # # if blks is not None:
-        # #     app.client.chat_update(
-        # #             channel=channel_id,
-        # #             ts=reply_message_ts,
-        # #             blocks=blks
-        # #         )
-        # # else:
-        # #     update_chat(app, channel_id, reply_message_ts, txt)
-        #     app.client.chat_update(
-        #         channel=channel_id,
-        #         ts=reply_message_ts,
-        #         blocks=response
-        #     )
-    elif command_text.startswith(":help") or command_text.startswith(":sos:"):
-        formatted_string = ""
-        for command in commands:
-            formatted_string += "\n*Command*: " + command['Command'] + "\n"
-            formatted_string += "*Description*: " + command['Description'] + "\n"
-            formatted_string += "*Example*: " + command['Example'] + "\n\n"
-        blocks = [
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"{formatted_string}"
-                }
-            }
-        ]
-        app.client.chat_update(
-            channel=channel_id,
-            ts=reply_message_ts,
-            blocks=blocks
-        )
     else:
         try:
             openai_response = get_completion_from_messages(messages)
