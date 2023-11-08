@@ -42,10 +42,6 @@ class Handler(abc.ABC):
     def handle(self):
         raise NotImplementedError
     
-    # @abc.abstractmethod
-    # def read_file(self):
-    #     pass
-
     @abc.abstractmethod
     def instantiate_loader(self, filename):
         pass
@@ -116,11 +112,6 @@ class Handler(abc.ABC):
             os.remove(filepath)
 
 class PDFHandler(Handler):
-    
-    # def __init__(self, file, openai_api_key, slack_bot_token):
-    #     super().__init__(file, openai_api_key, slack_bot_token)
-    #     self.loader = UnstructuredPDFLoader
-    #     # self.loader = PyPDFLoader
 
     def handle(self):
         return f"Handling PDF file: {self.file}"
@@ -130,33 +121,12 @@ class PDFHandler(Handler):
         # self.loader = PyPDFLoader(filename, metadata_filename=self.file.get('url_private'))
         self.loader = PyPDFLoader(filename)
 
-    # def read_file(self, url, SLACK_BOT_TOKEN, loader=UnstructuredPDFLoader):
-    #     headers = {'Authorization': f'Bearer {SLACK_BOT_TOKEN}'}
-    #     logger.info(url)
-    #     # loader = OnlinePDFLoader(url, headers=headers)
-    #     filename = self.download_local_file(url, headers)
-    #     # loader = UnstructuredPDFLoader(filename, headers=headers, mode="elements", metadata_filename=url)
-    #     loader = UnstructuredPDFLoader(filename, mode="elements")
-    #     self.documents = loader.load_and_split()
-    #     # logger.info(self.documents[0].page_content)
-    #     logger.info(self.documents[0].metadata)
-    #     return self.documents
-
 class DOCXHandler(Handler):
     def handle(self):
         return f"Handling DOCX file: {self.file}"
 
     def instantiate_loader(self, filename):
-        self.loader = UnstructuredWordDocumentLoader(filename, mode="elements")
-
-    # def read_file(self, url, SLACK_BOT_TOKEN):
-    #     headers = {'Authorization': f'Bearer {SLACK_BOT_TOKEN}'}
-    #     logger.info(url)
-    #     filename = self.download_local_file(url, headers)
-    #     loader = UnstructuredWordDocumentLoader(filename, headers=headers)
-    #     self.documents = loader.load_and_split()
-    #     self.delete_local_file(filename)
-    #     return self.documents             
+        self.loader = UnstructuredWordDocumentLoader(filename, mode="elements")         
 
 class TxtHandler(Handler):
     def handle(self):
@@ -193,13 +163,10 @@ class WebHandler(Handler):
         self.documents = loader.load_and_split()  
         return self.documents    
     
-# TODO - Need to implement these 
+# TODO - NOT IMPLEMENTED
 class PandasWrapperHandler(Handler):
     def handle(self):
         return f"Wrapping {self.file} in Pandas dataframe"
-    
-    # def read_file(self):
-    #     pass
 
     def _create_agent(self):
         self.df.columns = self.df.columns.str.strip()
@@ -217,6 +184,7 @@ class PandasWrapperHandler(Handler):
             format_instructions = FORMAT_INSTRUCTIONS
             )
 
+# TODO - NOT IMPLEMENTED
 class ExcelHandler(PandasWrapperHandler):
     def handle(self):
         return f"Handling Excel file: {self.file}"
@@ -238,6 +206,7 @@ class ExcelHandler(PandasWrapperHandler):
         self._create_agent()
         return self.q_and_a(self.first_impression)
         
+# TODO - NOT IMPLEMENTED
 class CSVHandler(PandasWrapperHandler):
     def handle(self):
         return f"Handling CSV file: {self.file}"
@@ -254,6 +223,7 @@ class CSVHandler(PandasWrapperHandler):
         return self.q_and_a(self.first_impression)
             # self.agent.run("What's the average rate of change from month to month?"))
 
+# TODO - NOT IMPLEMENTED
 class JSONHandler(Handler):
     def handle(self):
         return f"Handling JSON file: {self.file}"   
@@ -265,6 +235,7 @@ class JSONHandler(Handler):
         df.columns = df.columns.str.strip()
         agent = create_pandas_dataframe_agent(OpenAI(temperature=0, openai_api_key=self.openai_api_key), df=df, verbose=True, agent_type=AgentType.ZERO_SHOT_REACT_DESCRIPTION)
         # print(agent.agent.llm_chain.prompt.template)
+
 
 class MarkdownHandler(Handler):
     def handle(self):
