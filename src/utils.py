@@ -404,11 +404,6 @@ def generate_image(iPrompt):
     for image in response.data:
         image_url_list.append(image.model_dump()["url"])
 
-    # # Initialize an empty list to store the Image objects
-    # image_objects = []        
-
-
-
     j = {
         "response_type": "in_channel",
         "blocks": [
@@ -419,7 +414,6 @@ def generate_image(iPrompt):
                     "text": iPrompt,
                     "emoji": True
                 },
-                # "image_url": response['data'][0]['url'],
                 "image_url": image_url_list[0],
                 "alt_text": iPrompt
             }
