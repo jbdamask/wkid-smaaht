@@ -11,7 +11,8 @@ from botocore.exceptions import ClientError
 from pprint import pprint
 # import inspect module
 import inspect
-import openai
+# import openai
+from openai import OpenAI as openai
 import base64
 import configparser
 import requests
@@ -35,7 +36,8 @@ from langchain.docstore.document import Document
 from langchain.memory import ConversationBufferMemory
 from langchain.memory.chat_message_histories import ChatMessageHistory
 from langchain.prompts import PromptTemplate, ChatPromptTemplate
-from langchain.prompts.chat import SystemMessagePromptTemplate, HumanMessagePromptTemplate, SystemMessage
+# from langchain.prompts.chat import SystemMessagePromptTemplate, HumanMessagePromptTemplate, SystemMessage
+from langchain.prompts.chat import SystemMessagePromptTemplate, HumanMessagePromptTemplate
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.tools import DuckDuckGoSearchResults
 from langchain.vectorstores.base import VectorStoreRetriever
@@ -68,7 +70,8 @@ SLACK_BOT_TOKEN = os.getenv('SLACK_BOT_TOKEN_WKID_SMAAHT')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY_WKID_SMAAHT')
 SLACK_APP_TOKEN = os.getenv('SLACK_APP_TOKEN_WKID_SMAAHT')
 
-openai.api_key = OPENAI_API_KEY
+# client = OpenAI(api_key=OPENAI_API_KEY)
+client = openai(api_key=OPENAI_API_KEY)
 
 delimiter = "####"
 #### EXAMPLE OF GETTING SYSTEM PROMPT FROM LOCAL FILE
@@ -138,9 +141,7 @@ def moderate_messages(messages):
     try:
         # Check each message for moderation
         for message in messages:
-            response = openai.Moderation.create(
-                input=message
-            )            
+            response = client.moderations.create(input=message)            
             moderation_output = response["results"][0]
             if(moderation_output.flagged):
                 logger.debug(f"Moderation output: {moderation_output}")
@@ -183,14 +184,12 @@ def get_completion_from_messages(messages,
                                  max_tokens=MAX_TOKENS,
                                  ):
     try:
-        response = openai.ChatCompletion.create(
-            model=model,
-            messages=messages,
-            temperature=temperature,
-            stream=True
-        )
+        response = client.chat.completions.create(model=model,
+        messages=messages,
+        temperature=temperature,
+        stream=True)
         return response
-    except openai.error.Timeout as e:
+    except openai.Timeout as e:
         #Handle timeout error, e.g. retry or log
         logger.error(f"OpenAI API request timed out: {e}")
         pass
@@ -383,7 +382,7 @@ def generate_image(iPrompt):
     Returns:
     j (dict): A dictionary containing the response type, blocks, and image details.
     """
-    response = openai.Image.create(prompt=iPrompt, n=1, size="512x512")
+    response = client.images.generate(prompt=iPrompt, n=1, size="512x512")
     j = {
         "response_type": "in_channel",
         "blocks": [

@@ -361,7 +361,9 @@ def chunk_n_update(openai_response, app, channel_id, reply_message_ts):
         response_text = ""
         ii = 0
         for chunk in openai_response:
-            if chunk.choices[0].delta.get('content'):
+            logger.debug(chunk.choices[0])
+            # if chunk.choices[0].delta.get('content'):
+            if chunk.choices[0].delta.content:
                 ii = ii + 1
                 response_text += chunk.choices[0].delta.content
                 if ii > N_CHUNKS_TO_CONCAT_BEFORE_UPDATING:

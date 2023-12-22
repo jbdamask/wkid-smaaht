@@ -42,16 +42,27 @@ CONCISE_SUMMARY_PROMPT = PromptTemplate(
 )  
 
 from langchain.prompts import ChatPromptTemplate
-from langchain.prompts.chat import SystemMessage, HumanMessagePromptTemplate
+from langchain.prompts.chat import HumanMessagePromptTemplate, SystemMessagePromptTemplate
+# from langchain.prompts import SystemMessagePromptTemplate
 
 QUESTION_VARIANT_PROMPT = ChatPromptTemplate.from_messages(
     [
-        SystemMessage(
-            content=(
+        SystemMessagePromptTemplate.from_template(
                 """Generate five variants of the following text that can be used as prompts for vectorstore lookup. 
 Maintain the theme of the original. Do not number variants in your output. Output must be separated by newlines."""
-            )
         ),
         HumanMessagePromptTemplate.from_template("{text}"),
     ]
 )
+
+# QUESTION_VARIANT_PROMPT = ChatPromptTemplate.from_messages(
+#     [
+#         SystemMessagePromptTemplate(
+#             content=(
+#                 """Generate five variants of the following text that can be used as prompts for vectorstore lookup. 
+# Maintain the theme of the original. Do not number variants in your output. Output must be separated by newlines."""
+#             )
+#         ),
+#         HumanMessagePromptTemplate.from_template("{text}"),
+#     ]
+# )
