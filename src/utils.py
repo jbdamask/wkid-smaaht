@@ -382,7 +382,33 @@ def generate_image(iPrompt):
     Returns:
     j (dict): A dictionary containing the response type, blocks, and image details.
     """
-    response = client.images.generate(prompt=iPrompt, n=1, size="512x512")
+    try:
+        response = client.images.generate(model='dall-e-3', prompt=iPrompt, n=1, size="1024x1024")
+    except openai.APIConnectionError as e:
+        print("Server connection error: {e.__cause__}")  # from httpx.
+        raise
+    except openai.RateLimitError as e:
+        print(f"OpenAI RATE LIMIT error {e.status_code}: (e.response)")
+        raise
+    except openai.APIStatusError as e:
+        print(f"OpenAI STATUS error {e.status_code}: (e.response)")
+        raise
+    except openai.BadRequestError as e:
+        print(f"OpenAI BAD REQUEST error {e.status_code}: (e.response)")
+        raise
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        raise
+
+    image_url_list = []
+    for image in response.data:
+        image_url_list.append(image.model_dump()["url"])
+
+    # # Initialize an empty list to store the Image objects
+    # image_objects = []        
+
+
+
     j = {
         "response_type": "in_channel",
         "blocks": [
@@ -393,7 +419,8 @@ def generate_image(iPrompt):
                     "text": iPrompt,
                     "emoji": True
                 },
-                "image_url": response['data'][0]['url'],
+                # "image_url": response['data'][0]['url'],
+                "image_url": image_url_list[0],
                 "alt_text": iPrompt
             }
         ]
