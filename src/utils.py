@@ -388,18 +388,18 @@ def generate_image(iPrompt):
     """
     try:
         response = client.images.generate(model='dall-e-3', prompt=iPrompt, n=1, size="1024x1024")
-    except openai.APIConnectionError as e:
-        print("Server connection error: {e.__cause__}")  # from httpx.
-        raise
-    except openai.RateLimitError as e:
-        print(f"OpenAI RATE LIMIT error {e.status_code}: (e.response)")
-        raise
-    except openai.APIStatusError as e:
-        print(f"OpenAI STATUS error {e.status_code}: (e.response)")
-        raise
-    except openai.BadRequestError as e:
-        print(f"OpenAI BAD REQUEST error {e.status_code}: (e.response)")
-        raise
+    # except openai.APIConnectionError as e:
+    #     print("Server connection error: {e.__cause__}")  # from httpx.
+    #     raise
+    # except openai.RateLimitError as e:
+    #     print(f"OpenAI RATE LIMIT error {e.status_code}: (e.response)")
+    #     raise
+    # except openai.APIStatusError as e:
+    #     print(f"OpenAI STATUS error {e.status_code}: (e.response)")
+    #     raise
+    # except openai.BadRequestError as e:
+    #     print(f"OpenAI BAD REQUEST error {e.status_code}: (e.response)")
+    #     raise
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
         raise

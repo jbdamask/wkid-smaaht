@@ -100,7 +100,7 @@ olefile==0.46
 omegaconf==2.3.0
 onnx==1.14.1
 onnxruntime==1.16.0
-openai==1.6.0
+openai==1.10.0
 openapi-schema-pydantic==1.2.4
 opencv-python==4.8.1.78
 openpyxl==3.1.2
