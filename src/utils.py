@@ -39,7 +39,9 @@ from langchain.prompts import PromptTemplate, ChatPromptTemplate
 # from langchain.prompts.chat import SystemMessagePromptTemplate, HumanMessagePromptTemplate, SystemMessage
 from langchain.prompts.chat import SystemMessagePromptTemplate, HumanMessagePromptTemplate
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.tools import DuckDuckGoSearchResults
+# from langchain.tools import DuckDuckGoSearchResults
+# from langchain_community.tools import DuckDuckGoSearchResults
+from search_tool.ddg_search_langchain_override import DuckDuckGoSearchResults
 from langchain.vectorstores.base import VectorStoreRetriever
 from chat_with_docs.lc_file_handler import create_file_handler, FileRegistry
 from chat_with_docs.rag_fusion import RagFusion
@@ -61,9 +63,10 @@ DEBUG = Config.DEBUG
 models = {
     "gpt-3.5-turbo": {"max_token": 4096, "description": "Most capable GPT-3.5 model and optimized for chat at 1/10th the cost of text-davinci-003. Will be updated with our latest model iteration 2 weeks after it is released."},
     "gpt-4": {"max_token": 8192, "description": "More capable than any GPT-3.5 model, able to do more complex tasks, and optimized for chat. Will be updated with our latest model iteration 2 weeks after it is released."},
-    "gpt-3.5-turbo-16k": {"max_token": 16385, "description": "Same capabilities as the standard gpt-3.5-turbo model but with 4 times the context."}
+    "gpt-3.5-turbo-16k": {"max_token": 16385, "description": "Same capabilities as the standard gpt-3.5-turbo model but with 4 times the context."},
+    "gpt-4-turbo-preview": {"max_token": 128000, "description": "The latest GPT-4 model with improved instruction following, JSON mode, reproducible outputs, parallel function calling, and more. Returns a maximum of 4,096 output tokens. This preview model is not yet suited for production traffic."},
 }
-MODEL = "gpt-4"
+MODEL = "gpt-4-turbo-preview"
 MAX_TOKENS = models[MODEL]["max_token"]
 
 SLACK_BOT_TOKEN = os.getenv('SLACK_BOT_TOKEN_WKID_SMAAHT')
@@ -189,6 +192,7 @@ def get_completion_from_messages(messages,
         temperature=temperature,
         stream=True)
         return response
+    # TODO All exceptions need to change because the OpenAI API changed!!!!!
     except openai.Timeout as e:
         #Handle timeout error, e.g. retry or log
         logger.error(f"OpenAI API request timed out: {e}")
@@ -493,7 +497,7 @@ def summarize_chain(docs, app, channel_id, reply_message_ts):
     Returns:
     result (str): The summarized result.
     """
-    
+    import openai as OAI
     llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k", openai_api_key=OPENAI_API_KEY)
     PROMPT = CONCISE_SUMMARY_PROMPT
     try:
@@ -503,7 +507,8 @@ def summarize_chain(docs, app, channel_id, reply_message_ts):
                                      verbose=DEBUG
                                      )
         result = chain.run(docs)
-    except openai.error.InvalidRequestError as e:
+    # except openai.error.InvalidRequestError as e:
+    except Exception as e:
         warn = "Document length exceeded model capacity. Changing strategy - please be patient"
         logger.warning(warn)
         update_chat(app, channel_id, reply_message_ts, warn)
